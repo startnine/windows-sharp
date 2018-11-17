@@ -511,6 +511,40 @@ namespace WindowsSharp.Processes
             return NativeMethods.ShowWindow(Handle, NativeMethods.SwRestore);
         }
 
+        IntPtr _topmostHandle = IntPtr.Zero;
+
+        public void Peek()
+        {
+            Peek(IntPtr.Zero);
+        }
+
+        public void Peek(IntPtr topmostHandle)
+        {
+            uint peekOn = 1;
+            uint peekType = 1;
+            _topmostHandle = topmostHandle;
+            //IntPtr topmostHandle = IntPtr.Zero;
+            //Debug.WriteLine("Peek target title: " + new ProcessWindow(Handle).Title);
+
+            if (Environment.OSVersion.Version >= new Version(6, 2, 8400, 0))
+                NativeMethods.DwmpActivateLivePreview(peekOn, Handle, topmostHandle, peekType, UIntPtr.Zero);
+            else
+                NativeMethods.DwmpActivateLivePreview(peekOn, Handle, topmostHandle, peekType);
+        }
+
+        public void Unpeek()
+        {
+            uint peekOn = 0;
+            uint peekType = 1;
+            //IntPtr topmostHandle = IntPtr.Zero;
+            //Debug.WriteLine("Unpeek target title: " + new ProcessWindow(Handle).Title);
+
+            if (Environment.OSVersion.Version >= new Version(6, 2, 8400, 0))
+                NativeMethods.DwmpActivateLivePreview(peekOn, Handle, _topmostHandle, peekType, UIntPtr.Zero);
+            else
+                NativeMethods.DwmpActivateLivePreview(peekOn, Handle, _topmostHandle, peekType);
+        }
+
         NativeMethods.WINDOWPLACEMENT GetPlacement()
         {
             NativeMethods.WINDOWPLACEMENT placement = new NativeMethods.WINDOWPLACEMENT();

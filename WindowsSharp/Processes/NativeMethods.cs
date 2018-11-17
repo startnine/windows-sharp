@@ -14,6 +14,15 @@ namespace WindowsSharp.Processes
 {
     public static class NativeMethods
     {
+        [DllImport("dwmapi.dll", EntryPoint = "#113", SetLastError = true)]
+        public static extern uint DwmpActivateLivePreview(uint peekOn, IntPtr hWnd, IntPtr hTopmostWindow, uint peekType1or3);
+
+        [DllImport("dwmapi.dll", EntryPoint = "#113", SetLastError = true)]
+        public static extern uint DwmpActivateLivePreview(uint peekOn, IntPtr hWnd, IntPtr hTopmostWindow, uint peekType1or3, UIntPtr passZeroHere);
+
+        //DwmpActivateLivePreview(1, Handle, topmostWindowHandle, 1);//activate
+        //DwmpActivateLivePreview(0, Handle, topmostWindowHandle, 1);//deactivate
+
         [DllImport("psapi.dll")]
         public static extern uint GetModuleFileNameEx(IntPtr hProcess, IntPtr hModule, [Out] StringBuilder lpBaseName, [In] [MarshalAs(UnmanagedType.U4)] int nSize);
 
