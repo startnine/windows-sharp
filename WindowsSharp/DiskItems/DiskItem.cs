@@ -431,10 +431,13 @@ namespace WindowsSharp.DiskItems
                 ItemCategory = DiskItemCategory.Directory;
             else// if (!(Directory.Exists(ItemPath)))
             {
-                if (Directory.Exists(Environment.ExpandEnvironmentVariables(@"%programfiles%\WindowsApps\" + path)))
+                //Windows.Management.Deployment.PackageManager manager = new Windows.Management.Deployment.PackageManager();
+
+                string appPath = Environment.ExpandEnvironmentVariables(@"%programfiles%\WindowsApps\" + path);
+                if (Directory.Exists(path) && (!(appPath.EndsWith(@"\"))))
                 {
                     ItemCategory = DiskItemCategory.App;
-                    ItemAppInfo = new AppInfo(path);
+                    ItemAppInfo = new AppInfo(appPath);
                 }
             }
 
@@ -500,13 +503,20 @@ namespace WindowsSharp.DiskItems
             }
             else
             {
-                if (verb == OpenVerbs.Admin)
-                    Process.Start(new ProcessStartInfo(_itemPath, args)
-                    {
-                        Verb = "runas"
-                    });
-                else
-                    Process.Start(_itemPath, args);
+                try
+                {
+                    if (verb == OpenVerbs.Admin)
+                        Process.Start(new ProcessStartInfo(_itemPath, args)
+                        {
+                            Verb = "runas"
+                        });
+                    else
+                        Process.Start(_itemPath, args);
+                }
+                catch (System.ComponentModel.Win32Exception ex)
+                {
+
+                }
             }
         }
 

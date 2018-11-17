@@ -8,7 +8,7 @@ using System.Text;
 //using System.Windows.Forms;
 using System.Windows.Automation;
 using System.Windows.Forms;
-using static WindowsSharp.Processes.ProcessExtensions;
+using static WindowsSharp.Processes.AppxMethods;
 
 namespace WindowsSharp.Processes
 {
@@ -65,6 +65,28 @@ namespace WindowsSharp.Processes
             //Debug.WriteLine("WindowClosed");
         }
 
+        static IEnumerable<ProcessWindow> GetMetroApps()
+        {
+            if ((Environment.OSVersion.Version >= new Version(6, 2, 8400, 0))
+                    &&
+                    (Environment.OSVersion.Version < new Version(10, 0, 10240, 0)))
+            {
+                foreach (var p in Process.GetProcesses())
+                {
+                    AppxPackage package = AppxPackage.FromProcess(p);
+                    if (package != null)
+                    {
+                        yield return new ProcessWindow(package);
+                    }
+                }
+            }
+            else
+            {
+                yield break;
+                //return new List<ProcessWindow>();
+            }
+        }
+
         public static IEnumerable<ProcessWindow> RealProcessWindows
         {
             get
@@ -88,6 +110,9 @@ namespace WindowsSharp.Processes
 
                 foreach (var hwnd in collection)
                     yield return new ProcessWindow(hwnd);
+
+                /*foreach (var w in GetMetroApps())
+                    yield return w;*/
             }
         }
 
@@ -172,6 +197,9 @@ namespace WindowsSharp.Processes
 
                     }
                 }
+
+                /*foreach (var w in GetMetroApps())
+                    yield return w;*/
             }
         }
 
@@ -226,6 +254,12 @@ namespace WindowsSharp.Processes
             private set;
         }
 
+        public AppxPackage Package
+        {
+            get;
+            private set;
+        }
+
         public Process Process
         {
             get
@@ -246,6 +280,7 @@ namespace WindowsSharp.Processes
                 /*var strbTitle = new StringBuilder(NativeMethods.GetWindowTextLength(Handle));
                 NativeMethods.GetWindowText(Handle, strbTitle, strbTitle.Capacity + 1);
                 return strbTitle.ToString();*/
+
                 return _windowTitle;
             }
             internal set
@@ -266,7 +301,11 @@ namespace WindowsSharp.Processes
         {
             var strbTitle = new StringBuilder(NativeMethods.GetWindowTextLength(Handle));
             NativeMethods.GetWindowText(Handle, strbTitle, strbTitle.Capacity + 1);
-            return strbTitle.ToString();
+            string valueString = strbTitle.ToString();
+            if (string.IsNullOrWhiteSpace(valueString) && (Package != null))
+                valueString = Package.DisplayName;
+
+            return valueString;
         }
 
         //Rectangle _windowRectangle = new Rectangle();
@@ -275,8 +314,7 @@ namespace WindowsSharp.Processes
         {
             get
             {
-                NativeMethods.RECT rect;
-                NativeMethods.GetWindowRect(Handle, out rect);
+                NativeMethods.GetWindowRect(Handle, out NativeMethods.RECT rect);
                 Rectangle rectangle = new Rectangle();
 
                 try
@@ -305,27 +343,38 @@ namespace WindowsSharp.Processes
         {
             get
             {
-                var iconHandle = NativeMethods.SendMessage(Handle, NativeMethods.WmGetIcon, NativeMethods.IconBig, 0);
-
-                if (iconHandle == IntPtr.Zero)
-                    iconHandle = NativeMethods.GetClassLongPtr(Handle, NativeMethods.GclHIcon);
-                if (iconHandle == IntPtr.Zero)
-                    iconHandle = NativeMethods.SendMessage(Handle, NativeMethods.WmGetIcon, NativeMethods.IconSmall, 0);
-                if (iconHandle == IntPtr.Zero)
-                    iconHandle = NativeMethods.SendMessage(Handle, NativeMethods.WmGetIcon, NativeMethods.IconSmall2, 0);
-                if (iconHandle == IntPtr.Zero)
-                    iconHandle = NativeMethods.GetClassLongPtr(Handle, NativeMethods.GclHIconSm);
-
-                if (iconHandle == IntPtr.Zero)
-                    return null;
-
-                try
+                if (Package != null)
                 {
-                    return Icon.FromHandle(iconHandle);
+                    string path = Environment.ExpandEnvironmentVariables(Package.Logo);
+                    if (System.IO.File.Exists(path))
+                        return new Icon(Package.Logo);
+                    else
+                        return null;
                 }
-                finally
+                else
                 {
-                    NativeMethods.DestroyIcon(iconHandle);
+                    var iconHandle = NativeMethods.SendMessage(Handle, NativeMethods.WmGetIcon, NativeMethods.IconBig, 0);
+
+                    if (iconHandle == IntPtr.Zero)
+                        iconHandle = NativeMethods.GetClassLongPtr(Handle, NativeMethods.GclHIcon);
+                    if (iconHandle == IntPtr.Zero)
+                        iconHandle = NativeMethods.SendMessage(Handle, NativeMethods.WmGetIcon, NativeMethods.IconSmall, 0);
+                    if (iconHandle == IntPtr.Zero)
+                        iconHandle = NativeMethods.SendMessage(Handle, NativeMethods.WmGetIcon, NativeMethods.IconSmall2, 0);
+                    if (iconHandle == IntPtr.Zero)
+                        iconHandle = NativeMethods.GetClassLongPtr(Handle, NativeMethods.GclHIconSm);
+
+                    if (iconHandle == IntPtr.Zero)
+                        return null;
+
+                    try
+                    {
+                        return Icon.FromHandle(iconHandle);
+                    }
+                    finally
+                    {
+                        NativeMethods.DestroyIcon(iconHandle);
+                    }
                 }
             }
         }
@@ -431,10 +480,17 @@ namespace WindowsSharp.Processes
             timer.Start();
         }
 
+        public ProcessWindow(AppxPackage package)
+        {
+            Package = package;
+        }
+
         public bool Close()
         {
-            //Debug.WriteLine("Close()");
-            return NativeMethods.PostMessage(Handle, NativeMethods.WmClose, IntPtr.Zero, IntPtr.Zero);
+            if (Handle != null)
+                return NativeMethods.PostMessage(Handle, NativeMethods.WmClose, IntPtr.Zero, IntPtr.Zero);
+            else
+                return false; //app
         }
 
         public Int32 Maximize()
@@ -515,11 +571,7 @@ namespace WindowsSharp.Processes
         public event EventHandler WindowEvent;
         protected virtual void OnWindowEvent(string data)
         {
-            var handler = WindowEvent;
-            if (handler != null)
-            {
-                handler(this, data);
-            }
+            WindowEvent?.Invoke(this, data);
         }
 
         internal ProcessWindowMonitorForm()

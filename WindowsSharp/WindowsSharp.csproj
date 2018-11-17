@@ -49,6 +49,7 @@
   <ItemGroup>
     <Compile Include="DiskItems\AppInfo.cs" />
     <Compile Include="DiskItems\DiskItem.cs" />
+    <Compile Include="Processes\NativeMethods.cs" />
     <Compile Include="Processes\ProcessExtensions.cs" />
     <Compile Include="Processes\ProcessWindow.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
