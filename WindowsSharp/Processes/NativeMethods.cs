@@ -258,7 +258,7 @@ namespace WindowsSharp.Processes
             }
         }*/
 
-        public static void Show(int indent, AppxPackage package)
+        /*public static void Show(int indent, AppxPackage package)
         {
             string sindent = new string(' ', indent);
             Console.WriteLine(sindent + "FullName               : " + package.FullName);
@@ -785,6 +785,6 @@ namespace WindowsSharp.Processes
             x64 = 9,
             Neutral = 11,
             Arm64 = 12
-        }
+        }*/
     }
 }

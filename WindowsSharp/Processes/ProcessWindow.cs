@@ -65,11 +65,9 @@ namespace WindowsSharp.Processes
             //Debug.WriteLine("WindowClosed");
         }
 
-        static IEnumerable<ProcessWindow> GetMetroApps()
+        /*static IEnumerable<ProcessWindow> GetMetroApps()
         {
-            if ((Environment.OSVersion.Version >= new Version(6, 2, 8400, 0))
-                    &&
-                    (Environment.OSVersion.Version < new Version(10, 0, 10240, 0)))
+            if ((Environment.OSVersion.Version >= new Version(6, 2, 8400, 0)) && (Environment.OSVersion.Version < new Version(10, 0, 10240, 0)))
             {
                 foreach (var p in Process.GetProcesses())
                 {
@@ -85,7 +83,7 @@ namespace WindowsSharp.Processes
                 yield break;
                 //return new List<ProcessWindow>();
             }
-        }
+        }*/
 
         public static IEnumerable<ProcessWindow> RealProcessWindows
         {
@@ -177,7 +175,7 @@ namespace WindowsSharp.Processes
                 {
                     try
                     {
-                        if (Environment.Is64BitProcess)
+                        /*if (Environment.Is64BitProcess)
                         {
                             if ((TASKSTYLE == (TASKSTYLE & NativeMethods.GetWindowLong(hwnd, NativeMethods.GwlStyle).ToInt64())) && ((NativeMethods.GetWindowLong(hwnd, NativeMethods.GwlExStyle).ToInt64() & NativeMethods.WsExToolWindow) != NativeMethods.WsExToolWindow))
                             {
@@ -190,7 +188,9 @@ namespace WindowsSharp.Processes
                             {
                                 yield return new ProcessWindow(hwnd);
                             }
-                        }
+                        }*/
+                        if (IsWindowUserAccessible(hwnd))
+                            yield return new ProcessWindow(hwnd);
                     }
                     finally
                     {
@@ -254,11 +254,11 @@ namespace WindowsSharp.Processes
             private set;
         }
 
-        public AppxPackage Package
+        /*public AppxPackage Package
         {
             get;
             private set;
-        }
+        }*/
 
         public Process Process
         {
@@ -302,8 +302,8 @@ namespace WindowsSharp.Processes
             var strbTitle = new StringBuilder(NativeMethods.GetWindowTextLength(Handle));
             NativeMethods.GetWindowText(Handle, strbTitle, strbTitle.Capacity + 1);
             string valueString = strbTitle.ToString();
-            if (string.IsNullOrWhiteSpace(valueString) && (Package != null))
-                valueString = Package.DisplayName;
+            /*if ((Environment.OSVersion.Version >= new Version(6, 2, 8400, 0)) && string.IsNullOrWhiteSpace(valueString) && (Package != null))
+                valueString = Package.DisplayName;*/
 
             return valueString;
         }
@@ -343,7 +343,7 @@ namespace WindowsSharp.Processes
         {
             get
             {
-                if (Package != null)
+                /*if ((Environment.OSVersion.Version >= new Version(6, 2, 8400, 0)) && (Package != null))
                 {
                     string path = Environment.ExpandEnvironmentVariables(Package.Logo);
                     if (System.IO.File.Exists(path))
@@ -352,7 +352,7 @@ namespace WindowsSharp.Processes
                         return null;
                 }
                 else
-                {
+                {*/
                     var iconHandle = NativeMethods.SendMessage(Handle, NativeMethods.WmGetIcon, NativeMethods.IconBig, 0);
 
                     if (iconHandle == IntPtr.Zero)
@@ -375,7 +375,7 @@ namespace WindowsSharp.Processes
                     {
                         NativeMethods.DestroyIcon(iconHandle);
                     }
-                }
+                //}
             }
         }
 
@@ -429,11 +429,26 @@ namespace WindowsSharp.Processes
             }
         }
 
+        bool _isVisible;
+        public bool IsVisible
+        {
+            get => _isVisible;
+            set
+            {
+                _isVisible = value;
+                NotifyPropertyChanged("IsVisible");
+            }
+        }
+
         public ProcessWindow(IntPtr windowHandle)
         {
             Handle = windowHandle;
-            System.Timers.Timer timer = new System.Timers.Timer(10);
-            timer.Elapsed += (sneder, args) =>
+            IsVisible = NativeMethods.IsWindowVisible(Handle);
+
+            Timer timer = new Timer()
+            { Interval = 10 };
+
+            timer.Tick += (sneder, args) =>
             {
                 if (!NativeMethods.IsWindow(Handle))
                 {
@@ -453,37 +468,37 @@ namespace WindowsSharp.Processes
                     if (Title != currentTitle)
                         Title = currentTitle;
 
-                    //bool visibleNow = NativeMethods.IsWindowVisible(Handle);
+                    bool visibleNow = NativeMethods.IsWindowVisible(Handle);
                     /*(IsVisible && (!visibleNow))
                     || ((!IsVisible) && visibleNow)
                     )*/
-                    /*if (visibleNow != IsWindowVisible)
+                    if (visibleNow != IsVisible)
                     {
-                        Debug.WriteLine("IsVisible: " + IsWindowVisible.ToString() + "\nvisibleNow: " + visibleNow.ToString());
+                        Debug.WriteLine("IsVisible: " + IsVisible.ToString() + "\nvisibleNow: " + visibleNow.ToString());
 
                         //visibleNow;
 
                         if (visibleNow)
                         {
-                            IsWindowVisible = true;
+                            IsVisible = true;
                             RaiseWindowOpened(Handle, true);
                         }
                         else
                         {
-                            IsWindowVisible = false;
+                            IsVisible = false;
                             RaiseWindowClosed(Handle, true);
                         }
-                    }*/
+                    }
                 }
             };
             //SetWinEventHook
             timer.Start();
         }
 
-        public ProcessWindow(AppxPackage package)
+        /*public ProcessWindow(AppxPackage package)
         {
             Package = package;
-        }
+        }*/
 
         public bool Close()
         {
