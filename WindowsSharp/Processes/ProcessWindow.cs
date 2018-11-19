@@ -114,7 +114,7 @@ namespace WindowsSharp.Processes
             }
         }
 
-        static Int32 TASKSTYLE = 0x10000000 | 0x00800000;
+        static Int32 TASKSTYLE = 0x10000000;// | 0x00800000;
 
         public static IEnumerable<ProcessWindow> ProcessWindows
         {
@@ -205,12 +205,25 @@ namespace WindowsSharp.Processes
 
         public static bool IsWindowUserAccessible(IntPtr hwnd)
         {
+            var style = NativeMethods.GetWindowLong(hwnd, NativeMethods.GwlStyle);
+            var exStyle = NativeMethods.GetWindowLong(hwnd, NativeMethods.GwlExStyle);
+            var exStyleToolWindow = exStyle;
+            //exStyleToolWindow |= NativeMethods.WsExToolWindow;
+
             if (Environment.Is64BitProcess)
-                return ((TASKSTYLE == (TASKSTYLE & NativeMethods.GetWindowLong(hwnd, NativeMethods.GwlStyle).ToInt64()))
-                    && ((NativeMethods.GetWindowLong(hwnd, NativeMethods.GwlExStyle).ToInt64() & ~NativeMethods.WsExToolWindow) != 0));
+                return //(NativeMethods.WsVisible == (style.ToInt64() & NativeMethods.WsVisible))
+                       //&& ((style.ToInt64() & NativeMethods.WsChild) == style.ToInt64())
+                    NativeMethods.IsWindowVisible(hwnd)
+                    && (NativeMethods.WsBorder == (style.ToInt64() & NativeMethods.WsBorder))
+                    && ((style.ToInt64() & ~NativeMethods.WsChild) == style.ToInt64())
+                    && ((exStyle.ToInt64() & ~NativeMethods.WsExToolWindow) == exStyle.ToInt64());
             else
-                return ((TASKSTYLE == (TASKSTYLE & NativeMethods.GetWindowLong(hwnd, NativeMethods.GwlStyle).ToInt32()))
-                    && ((NativeMethods.GetWindowLong(hwnd, NativeMethods.GwlExStyle).ToInt32() & ~NativeMethods.WsExToolWindow) != 0));
+                return //(NativeMethods.WsVisible == (style.ToInt32() & NativeMethods.WsVisible))
+                       //&& ((style.ToInt32() & NativeMethods.WsChild) == style.ToInt32())
+                    NativeMethods.IsWindowVisible(hwnd)
+                    && (NativeMethods.WsBorder == (style.ToInt32() & NativeMethods.WsBorder))
+                    && ((style.ToInt32() & ~NativeMethods.WsChild) == style.ToInt32())
+                    && ((exStyle.ToInt32() & ~NativeMethods.WsExToolWindow) == exStyle.ToInt32());
         }
 
         static ProcessWindow()
@@ -474,7 +487,7 @@ namespace WindowsSharp.Processes
                     )*/
                     if (visibleNow != IsVisible)
                     {
-                        Debug.WriteLine("IsVisible: " + IsVisible.ToString() + "\nvisibleNow: " + visibleNow.ToString());
+                        //Debug.WriteLine("IsVisible: " + IsVisible.ToString() + "\nvisibleNow: " + visibleNow.ToString());
 
                         //visibleNow;
 

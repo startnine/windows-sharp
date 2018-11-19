@@ -234,7 +234,13 @@ namespace WindowsSharp.Processes
         static extern IntPtr GetWindowLong64(IntPtr hWnd, Int32 nIndex);
 
         public const Int32 GwlStyle = -16;
+
+        public const Int32 WsVisible = 0x10000000;
+        public const Int32 WsBorder = 0x00800000;
+        public const Int32 WsChild = 0x40000000;
+
         public const Int32 GwlExStyle = -20;
+
         public const Int32 WsExToolWindow = 0x00000080;
 
         [DllImport("user32.dll")]
