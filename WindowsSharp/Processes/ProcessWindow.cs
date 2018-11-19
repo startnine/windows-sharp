@@ -214,14 +214,14 @@ namespace WindowsSharp.Processes
                 return //(NativeMethods.WsVisible == (style.ToInt64() & NativeMethods.WsVisible))
                        //&& ((style.ToInt64() & NativeMethods.WsChild) == style.ToInt64())
                     NativeMethods.IsWindowVisible(hwnd)
-                    && (NativeMethods.WsBorder == (style.ToInt64() & NativeMethods.WsBorder))
+                    //&& (NativeMethods.WsBorder == (style.ToInt64() & NativeMethods.WsBorder))
                     && ((style.ToInt64() & ~NativeMethods.WsChild) == style.ToInt64())
                     && ((exStyle.ToInt64() & ~NativeMethods.WsExToolWindow) == exStyle.ToInt64());
             else
                 return //(NativeMethods.WsVisible == (style.ToInt32() & NativeMethods.WsVisible))
                        //&& ((style.ToInt32() & NativeMethods.WsChild) == style.ToInt32())
                     NativeMethods.IsWindowVisible(hwnd)
-                    && (NativeMethods.WsBorder == (style.ToInt32() & NativeMethods.WsBorder))
+                    //&& (NativeMethods.WsBorder == (style.ToInt32() & NativeMethods.WsBorder))
                     && ((style.ToInt32() & ~NativeMethods.WsChild) == style.ToInt32())
                     && ((exStyle.ToInt32() & ~NativeMethods.WsExToolWindow) == exStyle.ToInt32());
         }
@@ -591,10 +591,10 @@ namespace WindowsSharp.Processes
 
             NativeMethods.SetForegroundWindow(Handle);
 
-            if (IsMaximized)
+            /*if (IsMaximized)
                 Maximize();
             else
-                Restore();
+                Restore();*/
 
             /*else if ((placement.ShowCmd == NativeMethods.SwMinimize) || (placement.ShowCmd == NativeMethods.SwForceMinimize) || (placement.ShowCmd == NativeMethods.SwShowMinimized) || (placement.ShowCmd == NativeMethods.SwShowMinimizedNoActive))
                 NativeMethods.ShowWindow(Handle, NativeMethods.SwShow);*/
