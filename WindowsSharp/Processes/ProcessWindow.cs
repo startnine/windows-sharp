@@ -601,12 +601,13 @@ namespace WindowsSharp.Processes
                 NativeMethods.ShowWindow(Handle, NativeMethods.SwShow);*/
         }
 
-        public void ShowSystemMenu()
+        public void ShowSystemMenu(IntPtr callerWindowHandle)
         {
+            Debug.WriteLine("ShowSystemMenu");
             IntPtr menu = NativeMethods.GetSystemMenu(Handle, false);
-            int command = NativeMethods.TrackPopupMenuEx(menu, 0x0000 | 0x0100, 100, 100, Handle, IntPtr.Zero);
+            uint command = NativeMethods.TrackPopupMenuEx(menu, 0x0000/* | 0x0100*/, 100, 100, Handle, IntPtr.Zero);
             if (command != 0)
-                NativeMethods.PostMessage(Handle, 0x112, new IntPtr(command), IntPtr.Zero);
+                Debug.WriteLine("PostMessage output: " + NativeMethods.PostMessage(Handle, 0x0112, new IntPtr(command), new IntPtr(0xF090)).ToString());
         }
     }
 
