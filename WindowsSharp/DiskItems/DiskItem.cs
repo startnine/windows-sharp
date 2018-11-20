@@ -191,8 +191,7 @@ namespace WindowsSharp.DiskItems
                     System.Drawing.Icon result = (System.Drawing.Icon)(System.Drawing.Icon.FromHandle(shInfo.hIcon).Clone());
                     NativeMethods.DestroyIcon(shInfo.hIcon);
 
-                    NativeMethods.IImageList list;
-                    var hres = NativeMethods.SHGetImageList(0x2, ref NativeMethods.iidImageList, out list);
+                    var hres = NativeMethods.SHGetImageList(0x2, ref NativeMethods.iidImageList, out NativeMethods.IImageList list);
                     IntPtr resultHandle = IntPtr.Zero;
                     list.GetIcon(shInfo.iIcon, 1, ref resultHandle);
                     System.Drawing.Icon finalResult = (System.Drawing.Icon)(System.Drawing.Icon.FromHandle(resultHandle).Clone());
@@ -215,8 +214,7 @@ namespace WindowsSharp.DiskItems
                     System.Drawing.Icon result = (System.Drawing.Icon)(System.Drawing.Icon.FromHandle(shInfo.hIcon).Clone());
                     NativeMethods.DestroyIcon(shInfo.hIcon);
 
-                    NativeMethods.IImageList list;
-                    var hres = NativeMethods.SHGetImageList(0x4, ref NativeMethods.iidImageList, out list);
+                    var hres = NativeMethods.SHGetImageList(0x4, ref NativeMethods.iidImageList, out NativeMethods.IImageList list);
                     IntPtr resultHandle = IntPtr.Zero;
                     list.GetIcon(shInfo.iIcon, 1, ref resultHandle);
                     System.Drawing.Icon finalResult = (System.Drawing.Icon)(System.Drawing.Icon.FromHandle(resultHandle).Clone());
@@ -527,8 +525,8 @@ namespace WindowsSharp.DiskItems
                 IntPtr pir = IntPtr.Zero;
                 NativeMethods.OpenPackageInfoByFullName(packageFullName, 0, out pir);
 
-                int length = 0, count;
-                NativeMethods.GetPackageApplicationIds(pir, ref length, null, out count);
+                int length = 0;
+                NativeMethods.GetPackageApplicationIds(pir, ref length, null, out int count);
 
                 var buffer = new byte[length];
                 NativeMethods.GetPackageApplicationIds(pir, ref length, buffer, out count);
@@ -536,8 +534,7 @@ namespace WindowsSharp.DiskItems
                 var appUserModelId = Encoding.Unicode.GetString(buffer, IntPtr.Size * count, length - IntPtr.Size * count);
 
                 var activation = (NativeMethods.IApplicationActivationManager)new NativeMethods.ApplicationActivationManager();
-                uint pid;
-                int hr = activation.ActivateApplication(appUserModelId, arguments ?? string.Empty, NativeMethods.ActivateOptions.None, out pid);
+                int hr = activation.ActivateApplication(appUserModelId, arguments ?? string.Empty, NativeMethods.ActivateOptions.None, out uint pid);
                 if (hr < 0)
                     Marshal.ThrowExceptionForHR(hr);
                 return pid;

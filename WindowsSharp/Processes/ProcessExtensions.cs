@@ -7,13 +7,54 @@ namespace WindowsSharp.Processes
 {
     public static class ProcessExtensions
     {
-        static ProcessExtensions()
+        public static string GetExecutablePath(this Process process)
+        {
+            string returnValue = string.Empty;
+            StringBuilder stringBuilder = new StringBuilder(1024);
+            IntPtr hprocess = NativeMethods.OpenProcess(0x1000, false, process.Id);
+
+            if (hprocess != IntPtr.Zero)
+            {
+                try
+                {
+                    int size = stringBuilder.Capacity;
+
+                    if (NativeMethods.QueryFullProcessImageName(hprocess, 0, stringBuilder, out size))
+                        returnValue = stringBuilder.ToString();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex);
+                    try
+                    {
+                        returnValue = process.MainModule.FileName;
+                    }
+                    catch (Exception exc)
+                    {
+                        Debug.WriteLine(exc);
+                    }
+                }
+            }
+            /*var package = AppxPackage.FromProcess(process);
+            if (package != null)
+            {
+                Debug.WriteLine("PACKAGE.APPLICATIONUSERMODELID: " + package.ApplicationUserModelId);
+                returnValue = package.ApplicationUserModelId;
+            }*/
+            /*else
+                Debug.WriteLine("PACKAGE IS NULL");*/
+
+            //Debug.WriteLine("returnValue: " + returnValue);
+            return returnValue;
+        }
+
+        /*static ProcessExtensions()
         {
             var form = new ProcessWindowMonitorForm();
 
             while (true)
                 System.Windows.Forms.Application.DoEvents();
-        }
+        }*/
 
 
         public static List<ProcessWindow> Windows(this Process process)
@@ -46,46 +87,40 @@ namespace WindowsSharp.Processes
             return windows;
         }
 
-        public static string GetExecutablePath(Process process)
+        public static string GetProcessAppUserModelId(this Process process)
         {
-            string returnValue = "";
-            StringBuilder stringBuilder = new StringBuilder(1024);
-            IntPtr hprocess = NativeMethods.OpenProcess(0x1000, false, process.Id);
+            string output = string.Empty;
 
-            if (hprocess != IntPtr.Zero)
-            {
-                try
-                {
-                    int size = stringBuilder.Capacity;
+            IntPtr handle = process.Handle;
 
-                    if (NativeMethods.QueryFullProcessImageName(hprocess, 0, stringBuilder, out size))
-                        returnValue = stringBuilder.ToString();
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine(ex);
-                    try
-                    {
-                        returnValue = process.MainModule.FileName;
-                    }
-                    catch (Exception exc)
-                    {
-                        Debug.WriteLine(exc);
-                    }
-                }
-            }
+            int outputLength = 0;
+            AppxMethods.GetApplicationUserModelId(handle, ref outputLength, null);
 
-            return returnValue;
+            StringBuilder outputBuilder = new StringBuilder(outputLength);
+
+
+            int resultValue = AppxMethods.GetApplicationUserModelId(handle, ref outputLength, outputBuilder);
+
+            if (resultValue == 0)
+                output = outputBuilder.ToString();
+
+            return output;
         }
 
         public static bool IsSameApp(this Process process, Process compareProcess)
         {
-            return (GetExecutablePath(process).ToLowerInvariant()) == (GetExecutablePath(compareProcess).ToLowerInvariant());
+            bool pathsEqual = process.GetExecutablePath().ToLowerInvariant() == compareProcess.GetExecutablePath().ToLowerInvariant();
+            bool appUserModelIdsEqual = true;
+
+            if (Environment.OSVersion.Version >= new Version(6, 2, 8400, 0))
+                appUserModelIdsEqual = process.GetProcessAppUserModelId() == compareProcess.GetProcessAppUserModelId();
+
+            return pathsEqual && appUserModelIdsEqual;
         }
 
-        public static bool IsSameApp(this Process process, DiskItems.DiskItem compareItem)
+        public static bool BelongsToExecutable(this Process process, DiskItems.DiskItem compareItem)
         {
-            return (GetExecutablePath(process).ToLowerInvariant()) == (compareItem.ItemPath.ToLowerInvariant());
+            return process.GetExecutablePath().ToLowerInvariant() == compareItem.ItemPath.ToLowerInvariant();
         }
     }
 }

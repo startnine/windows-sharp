@@ -114,7 +114,7 @@ namespace WindowsSharp.Processes
             }
         }
 
-        static Int32 TASKSTYLE = 0x10000000;// | 0x00800000;
+        //static Int32 TASKSTYLE = 0x10000000;// | 0x00800000;
 
         public static IEnumerable<ProcessWindow> ProcessWindows
         {
@@ -521,22 +521,22 @@ namespace WindowsSharp.Processes
                 return false; //app
         }
 
-        public Int32 Maximize()
+        public bool Maximize()
         {
             //Debug.WriteLine("Maximize()");
-            return NativeMethods.ShowWindow(Handle, NativeMethods.SwMaximize);
+            return NativeMethods.ShowWindowAsync(Handle, NativeMethods.SwMaximize);
         }
 
-        public Int32 Minimize()
+        public bool Minimize()
         {
             //Debug.WriteLine("Minimize()");
-            return NativeMethods.ShowWindow(Handle, NativeMethods.SwMinimize);
+            return NativeMethods.ShowWindowAsync(Handle, NativeMethods.SwMinimize);
         }
          
-        public Int32 Restore()
+        public bool Restore()
         {
             //Debug.WriteLine("Restore()");
-            return NativeMethods.ShowWindow(Handle, NativeMethods.SwRestore);
+            return NativeMethods.ShowWindowAsync(Handle, NativeMethods.SwRestore);
         }
 
         IntPtr _topmostHandle = IntPtr.Zero;
@@ -584,10 +584,10 @@ namespace WindowsSharp.Processes
         public void Show()
         {
             //Debug.WriteLine("Show()");
-            var placement = GetPlacement();
+            //var placement = GetPlacement();
 
-            if (IsMinimized)
-                NativeMethods.ShowWindow(Handle, NativeMethods.SwShow);
+            /*if (IsMinimized)
+                NativeMethods.ShowWindow(Handle, NativeMethods.SwShow);*/
 
             NativeMethods.SetForegroundWindow(Handle);
 
@@ -595,6 +595,7 @@ namespace WindowsSharp.Processes
                 Maximize();
             else
                 Restore();*/
+            NativeMethods.ShowWindowAsync(Handle, NativeMethods.SwShow);
 
             /*else if ((placement.ShowCmd == NativeMethods.SwMinimize) || (placement.ShowCmd == NativeMethods.SwForceMinimize) || (placement.ShowCmd == NativeMethods.SwShowMinimized) || (placement.ShowCmd == NativeMethods.SwShowMinimizedNoActive))
                 NativeMethods.ShowWindow(Handle, NativeMethods.SwShow);*/
@@ -609,7 +610,7 @@ namespace WindowsSharp.Processes
         }
     }
 
-    internal class ProcessWindowMonitorForm : Form
+    /*internal class ProcessWindowMonitorForm : Form
     {
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         static extern uint RegisterWindowMessage(string lpString);
@@ -660,7 +661,7 @@ namespace WindowsSharp.Processes
                 //ProcessWindow.RaiseWindowOpened(m.HWnd);
             }
         }
-    }
+    }*/
 
     public class WindowEventArgs : EventArgs
     {

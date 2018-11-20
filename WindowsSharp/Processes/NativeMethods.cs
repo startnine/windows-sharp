@@ -154,6 +154,9 @@ namespace WindowsSharp.Processes
         [DllImport("User32")]
         public static extern Int32 ShowWindow(IntPtr hwnd, Int32 nCmdShow);
 
+        [DllImport("user32.dll")]
+        public static extern bool ShowWindowAsync(IntPtr hwnd, Int32 nCmdShow);
+
         public static int SwForceMinimize = 11;
         public static int SwHide = 0;
         public static int SwMaximize = 3;
@@ -697,12 +700,12 @@ namespace WindowsSharp.Processes
             public static extern int ClosePackageInfo(IntPtr packageInfoReference);
 
             [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-            public static extern int GetPackageFullName(IntPtr hProcess, ref int packageFullNameLength, StringBuilder packageFullName);
+            public static extern int GetPackageFullName(IntPtr hProcess, ref int packageFullNameLength, StringBuilder packageFullName);*/
 
             [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
             public static extern int GetApplicationUserModelId(IntPtr hProcess, ref int applicationUserModelIdLength, StringBuilder applicationUserModelId);
 
-            [Flags]
+            /*[Flags]
             public enum PackageConstants
             {
                 PACKAGE_FILTER_ALL_LOADED = 0x00000000,
