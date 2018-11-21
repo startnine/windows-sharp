@@ -323,29 +323,30 @@ namespace WindowsSharp.Processes
 
         //Rectangle _windowRectangle = new Rectangle();
 
-        public Rectangle WindowRect
+        Rectangle GetBounds()
         {
-            get
+            NativeMethods.GetWindowRect(Handle, out NativeMethods.RECT rect);
+            Rectangle rectangle = new Rectangle();
+
+            try
             {
-                NativeMethods.GetWindowRect(Handle, out NativeMethods.RECT rect);
-                Rectangle rectangle = new Rectangle();
-
-                try
-                {
-                    rectangle = new Rectangle(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine(ex);
-                }
-
-                return rectangle;
+                rectangle = new Rectangle(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top);
             }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex);
+            }
+            return rectangle;
+        }
+
+        public Rectangle WindowBounds
+        {
+            get => GetBounds();
             set
             {
                 Rectangle rect = value;
                 NativeMethods.MoveWindow(Handle, value.X, value.Y, value.Width, value.Height, true);
-                NotifyPropertyChanged("WindowRect");
+                NotifyPropertyChanged("WindowBounds");
             }
         }
 
@@ -453,10 +454,55 @@ namespace WindowsSharp.Processes
             }
         }
 
+        static Image CaptureWindow(IntPtr handle)
+        {
+            IntPtr hdcSrc = NativeMethods.GetWindowDC(handle);
+
+            NativeMethods.RECT windowRect = new NativeMethods.RECT();
+            NativeMethods.GetWindowRect(handle, out windowRect);
+
+            int width = windowRect.Right - windowRect.Left;
+            int height = windowRect.Bottom - windowRect.Top;
+
+            IntPtr hdcDest = NativeMethods.CreateCompatibleDC(hdcSrc);
+            IntPtr hBitmap = NativeMethods.CreateCompatibleBitmap(hdcSrc, width, height);
+
+            IntPtr hOld = NativeMethods.SelectObject(hdcDest, hBitmap);
+            NativeMethods.BitBlt(hdcDest, 0, 0, width, height, hdcSrc, 0, 0, 13369376);
+            NativeMethods.SelectObject(hdcDest, hOld);
+            NativeMethods.DeleteDC(hdcDest);
+            NativeMethods.ReleaseDC(handle, hdcSrc);
+
+            Image image = Image.FromHbitmap(hBitmap);
+            NativeMethods.DeleteObject(hBitmap);
+
+            return image;
+        }
+
+        Image GetThumbnail()
+        {
+            if (NativeMethods.DwmIsCompositionEnabled())
+                return CaptureWindow(Handle);
+            else
+                return null;
+        }
+
+        Image _thumbnail = null;
+        public Image Thumbnail
+        {
+            get => _thumbnail;
+            private set
+            {
+                _thumbnail = value;
+                NotifyPropertyChanged("Thumbnail");
+            }
+        }
+
         public ProcessWindow(IntPtr windowHandle)
         {
             Handle = windowHandle;
             IsVisible = NativeMethods.IsWindowVisible(Handle);
+            Thumbnail = GetThumbnail();
 
             Timer timer = new Timer()
             { Interval = 10 };
@@ -502,10 +548,44 @@ namespace WindowsSharp.Processes
                             RaiseWindowClosed(Handle, true);
                         }
                     }
+
+                    /*Rectangle rect = GetBounds();
+                    bool posChanged = (WindowBounds.Left != rect.Left) || (WindowBounds.Top != rect.Top);
+                    bool sizeChanged = (WindowBounds.Width != rect.Width) || (WindowBounds.Height != rect.Height);
+
+                    if (posChanged || sizeChanged)
+                    {
+                        NotifyPropertyChanged("WindowBounds");
+                        //_windowBounds = rect;
+
+                        if (sizeChanged)
+                        {
+                            Thumbnail = GetThumbnail();
+                            //NotifyPropertyChanged("Thumbnail");
+                        }
+                    }*/
                 }
             };
             //SetWinEventHook
             timer.Start();
+
+            Timer boundsTimer = new Timer()
+            { Interval = 100 };
+
+            boundsTimer.Tick += (sneder, args) =>
+            {
+                if (!NativeMethods.IsWindow(Handle))
+                    boundsTimer.Stop();
+                else
+                {
+                    WindowBounds = GetBounds();
+
+                    if (NativeMethods.DwmIsCompositionEnabled())
+                        Thumbnail = GetThumbnail();
+                }
+            };
+
+            boundsTimer.Start();
         }
 
         /*public ProcessWindow(AppxPackage package)
@@ -591,10 +671,15 @@ namespace WindowsSharp.Processes
 
             NativeMethods.SetForegroundWindow(Handle);
 
-            /*if (IsMaximized)
-                Maximize();
-            else
-                Restore();*/
+
+            if (IsMinimized)
+            {
+                if (IsMaximized)
+                    Maximize();
+                else
+                    Restore();
+            }
+
             NativeMethods.ShowWindowAsync(Handle, NativeMethods.SwShow);
 
             /*else if ((placement.ShowCmd == NativeMethods.SwMinimize) || (placement.ShowCmd == NativeMethods.SwForceMinimize) || (placement.ShowCmd == NativeMethods.SwShowMinimized) || (placement.ShowCmd == NativeMethods.SwShowMinimizedNoActive))
