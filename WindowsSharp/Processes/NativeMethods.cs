@@ -10,10 +10,131 @@ using System.Runtime.InteropServices.ComTypes;
 using System.Security;
 using System.Text;
 
-namespace WindowsSharp.Processes
+namespace WindowsSharp
 {
     public static class NativeMethods
     {
+        //Begin tray stuff ( https://gist.github.com/paulcbetts/e90c7d89624d1b1adc72 )
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct GUID
+        {
+            public int a;
+            public short b;
+            public short c;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
+            public byte[] d;
+        }
+
+        // NOTIFYITEM describes an entry in Explorer's registry of status icons.
+        // Explorer keeps entries around for a process even after it exits.
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        public struct NOTIFYITEM
+        {
+            /*[MarshalAs(UnmanagedType.LPWStr)]
+            public string exe_name;    // The file name of the creating executable.
+
+            [MarshalAs(UnmanagedType.LPWStr)]
+            public string tip;         // The last hover-text value associated with this status
+                                // item.
+
+            public IntPtr icon;       // The icon associated with this status item.
+            public IntPtr hwnd;       // The HWND associated with the status item.
+            public int preference;  // Determines the behavior of the icon with respect to
+                                                      // the taskbar
+            public uint id;           // The ID specified by the application.  (hWnd, uID) is
+                                      // unique.
+            public Guid guid;         // The GUID specified by the application, alternative to
+                                      // uID.
+
+            public uint uCallbackMessage;*/
+
+            public string pszExeName { get; set; }
+            public string pszTip { get; set; }
+            public IntPtr hIcon { get; set; }
+            public IntPtr hWnd { get; set; }
+            public uint dwPreference { get; set; }
+            public uint uID { get; set; }
+            public GUID GuidItem { get; set; }
+            public uint uCallbackMessage { get; set; }
+            /*public uint reserved { get; set; }
+            public uint reserved2 { get; set; }
+            public uint reserved3 { get; set; }
+            public uint reserved4 { get; set; }
+            public uint reserved5 { get; set; }*/
+            void modify(NOTIFYICONDATA pnid)
+            {
+                bool change = false;
+            }
+        };
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        public class NOTIFYICONDATA
+        {
+            public int cbSize = Marshal.SizeOf(typeof(NOTIFYICONDATA));
+            public IntPtr hWnd;
+            public int uID;
+            public int uFlags;
+            public int uCallbackMessage;
+            public IntPtr hIcon;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 0x80)]
+            public string szTip;
+            public int dwState;
+            public int dwStateMask;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 0x100)]
+            public string szInfo;
+            public int uTimeoutOrVersion;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 0x40)]
+            public string szInfoTitle;
+            public int dwInfoFlags;
+        }
+
+        [ComImport]
+        [Guid("D782CCBA-AFB0-43F1-94DB-FDA3779EACCB")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        public interface INotificationCb
+        {
+            void Notify([In]uint nEvent, [In] ref NOTIFYITEM notifyItem);
+            //IntPtr QueryInterface(int refiId, object idk);
+        }
+
+        [ComImport]
+        [Guid("FB852B2C-6BAD-4605-9551-F15F87830935")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        public interface ITrayNotifyWin7
+        {
+            void RegisterCallback([MarshalAs(UnmanagedType.Interface)]INotificationCb callback);
+            void SetPreference([In] ref NOTIFYITEM notifyItem);
+            void EnableAutoTray([In] bool enabled);
+        }
+
+        [ComImport]
+        [Guid("D133CE13-3537-48BA-93A7-AFCD5D2053B4")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        public interface ITrayNotify
+        {
+            void RegisterCallback([MarshalAs(UnmanagedType.Interface)]INotificationCb callback, [Out] out ulong handle);
+            void UnregisterCallback([In] ref ulong handle);
+            void SetPreference([In] ref NOTIFYITEM notifyItem);
+            void EnableAutoTray([In] bool enabled);
+            void DoAction([In] bool enabled);
+        }
+
+        [ComImport, Guid("25DEAD04-1EAC-4911-9E3A-AD0A4AB560FD")]
+        public class TrayNotify { }
+
+        public class NotificationCb : INotificationCb
+        {
+            public readonly List<NOTIFYITEM> items = new List<NOTIFYITEM>();
+
+            public void Notify([In] uint nEvent, [In] ref NOTIFYITEM notifyItem)
+            {
+                items.Add(notifyItem);
+            }
+        }
+        //End tray stuff
+
+
         [DllImport("dwmapi.dll")]
         static extern Int32 DwmIsCompositionEnabled(out Boolean enabled);
 
@@ -22,7 +143,6 @@ namespace WindowsSharp.Processes
             DwmIsCompositionEnabled(out bool returnValue);
             return returnValue;
         }
-
 
         [DllImport("gdi32.dll")]
         public static extern bool BitBlt(IntPtr hObject, int nXDest, int nYDest, int nWidth, int nHeight, IntPtr hObjectSource, int nXSrc, int nYSrc, int dwRop);
@@ -178,6 +298,12 @@ namespace WindowsSharp.Processes
         public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
         public static uint WmClose = 0x0010;
+        public static uint WmMouseMove = 0x0200;
+        public static uint WmLButtonDown = 0x0201;
+        public static uint WmMButtonDown = 0x0207;
+        public static uint WmRButtonDown = 0x0204;
+        public static uint WmRButtonUp = 0x0205;
+        public static uint WmXButtonDown = 0x020B;
 
         [DllImport("user32.dll")]
         public static extern Boolean SetForegroundWindow(IntPtr hWnd);
@@ -244,6 +370,12 @@ namespace WindowsSharp.Processes
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
         public static extern IntPtr SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
+        public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, UIntPtr lParam);
 
         public const int GclHIconSm = -34;
         public const int GclHIcon = -14;

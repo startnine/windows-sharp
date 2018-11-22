@@ -9,7 +9,7 @@ using System.Text;
 using System.Windows.Automation;
 using System.Windows.Forms;
 using Timer = System.Timers.Timer;
-using static WindowsSharp.Processes.AppxMethods;
+using static WindowsSharp.AppxMethods;
 
 namespace WindowsSharp.Processes
 {
@@ -451,30 +451,38 @@ namespace WindowsSharp.Processes
 
         static Image CaptureWindow(IntPtr handle)
         {
-            IntPtr hdcSrc = NativeMethods.GetWindowDC(handle);
+            try
+            {
+                IntPtr hdcSrc = NativeMethods.GetWindowDC(handle);
 
-            NativeMethods.RECT windowRect = new NativeMethods.RECT();
-            NativeMethods.GetWindowRect(handle, out windowRect);
+                NativeMethods.RECT windowRect = new NativeMethods.RECT();
+                NativeMethods.GetWindowRect(handle, out windowRect);
 
-            int width = windowRect.Right - windowRect.Left;
-            int height = windowRect.Bottom - windowRect.Top;
+                int width = windowRect.Right - windowRect.Left;
+                int height = windowRect.Bottom - windowRect.Top;
 
-            IntPtr hdcDest = NativeMethods.CreateCompatibleDC(hdcSrc);
-            IntPtr hBitmap = NativeMethods.CreateCompatibleBitmap(hdcSrc, width, height);
+                IntPtr hdcDest = NativeMethods.CreateCompatibleDC(hdcSrc);
+                IntPtr hBitmap = NativeMethods.CreateCompatibleBitmap(hdcSrc, width, height);
 
-            IntPtr hOld = NativeMethods.SelectObject(hdcDest, hBitmap);
+                IntPtr hOld = NativeMethods.SelectObject(hdcDest, hBitmap);
 
-            NativeMethods.BitBlt(hdcDest, 0, 0, width, height, hdcSrc, 0, 0, 13369376);
-            NativeMethods.SelectObject(hdcDest, hOld);
-            NativeMethods.DeleteDC(hdcDest);
-            NativeMethods.ReleaseDC(handle, hdcSrc);
+                NativeMethods.BitBlt(hdcDest, 0, 0, width, height, hdcSrc, 0, 0, 13369376);
+                NativeMethods.SelectObject(hdcDest, hOld);
+                NativeMethods.DeleteDC(hdcDest);
+                NativeMethods.ReleaseDC(handle, hdcSrc);
 
-            Image image = Image.FromHbitmap(hBitmap);
-            NativeMethods.DeleteObject(hBitmap);
+                Image image = Image.FromHbitmap(hBitmap);
+                NativeMethods.DeleteObject(hBitmap);
 
-            NativeMethods.DeleteObject(hdcDest);
+                NativeMethods.DeleteObject(hdcDest);
 
-            return image;
+                return image;
+            }
+            catch (ExternalException ex)
+            {
+                Debug.WriteLine("ProcessWindow.CaptureWindow machine broke:\n" + ex);
+                return null;
+            }
         }
 
         Image GetThumbnail()
