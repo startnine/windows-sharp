@@ -8,6 +8,7 @@ using System.Text;
 //using System.Windows.Forms;
 using System.Windows.Automation;
 using System.Windows.Forms;
+using Timer = System.Timers.Timer;
 using static WindowsSharp.Processes.AppxMethods;
 
 namespace WindowsSharp.Processes
@@ -245,7 +246,7 @@ namespace WindowsSharp.Processes
 													new WindowEventArgs(
 														new ProcessWindow(new IntPtr(((AutomationElement) sender).Cached.NativeWindowHandle)))));*/
 
-            System.Timers.Timer timer = new System.Timers.Timer(1);
+            Timer timer = new Timer(1);
             timer.Elapsed += (sneder, args) =>
             {
                 //Debug.WriteLine("timer elapsed");
@@ -325,17 +326,11 @@ namespace WindowsSharp.Processes
 
         Rectangle GetBounds()
         {
-            NativeMethods.GetWindowRect(Handle, out NativeMethods.RECT rect);
             Rectangle rectangle = new Rectangle();
 
-            try
-            {
+            if (NativeMethods.GetWindowRect(Handle, out NativeMethods.RECT rect))
                 rectangle = new Rectangle(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(ex);
-            }
+
             return rectangle;
         }
 
@@ -468,6 +463,7 @@ namespace WindowsSharp.Processes
             IntPtr hBitmap = NativeMethods.CreateCompatibleBitmap(hdcSrc, width, height);
 
             IntPtr hOld = NativeMethods.SelectObject(hdcDest, hBitmap);
+
             NativeMethods.BitBlt(hdcDest, 0, 0, width, height, hdcSrc, 0, 0, 13369376);
             NativeMethods.SelectObject(hdcDest, hOld);
             NativeMethods.DeleteDC(hdcDest);
@@ -475,6 +471,8 @@ namespace WindowsSharp.Processes
 
             Image image = Image.FromHbitmap(hBitmap);
             NativeMethods.DeleteObject(hBitmap);
+
+            NativeMethods.DeleteObject(hdcDest);
 
             return image;
         }
@@ -487,13 +485,13 @@ namespace WindowsSharp.Processes
                 return null;
         }
 
-        Image _thumbnail = null;
+        //Image _thumbnail = null;
         public Image Thumbnail
         {
-            get => _thumbnail;
+            get => GetThumbnail();
             private set
             {
-                _thumbnail = value;
+                //_thumbnail = value;
                 NotifyPropertyChanged("Thumbnail");
             }
         }
@@ -504,10 +502,10 @@ namespace WindowsSharp.Processes
             IsVisible = NativeMethods.IsWindowVisible(Handle);
             Thumbnail = GetThumbnail();
 
-            Timer timer = new Timer()
-            { Interval = 10 };
+            Timer timer = new Timer(10);
+            //{ Interval = 10 };
 
-            timer.Tick += (sneder, args) =>
+            timer.Elapsed += (sneder, args) =>
             {
                 if (!NativeMethods.IsWindow(Handle))
                 {
@@ -549,43 +547,35 @@ namespace WindowsSharp.Processes
                         }
                     }
 
-                    /*Rectangle rect = GetBounds();
-                    bool posChanged = (WindowBounds.Left != rect.Left) || (WindowBounds.Top != rect.Top);
-                    bool sizeChanged = (WindowBounds.Width != rect.Width) || (WindowBounds.Height != rect.Height);
-
-                    if (posChanged || sizeChanged)
-                    {
+                    if (!IsMinimized)
                         NotifyPropertyChanged("WindowBounds");
-                        //_windowBounds = rect;
 
-                        if (sizeChanged)
-                        {
-                            Thumbnail = GetThumbnail();
-                            //NotifyPropertyChanged("Thumbnail");
-                        }
-                    }*/
+                    if (NativeMethods.DwmIsCompositionEnabled())
+                        NotifyPropertyChanged("Thumbnail");
                 }
             };
             //SetWinEventHook
             timer.Start();
 
-            Timer boundsTimer = new Timer()
-            { Interval = 100 };
+            Timer boundsTimer = new Timer(100);
+            //{ Interval = 100 };
 
-            boundsTimer.Tick += (sneder, args) =>
+            boundsTimer.Elapsed += (sneder, args) =>
             {
                 if (!NativeMethods.IsWindow(Handle))
                     boundsTimer.Stop();
                 else
                 {
-                    WindowBounds = GetBounds();
+                    //WindowBounds = GetBounds();
+                    NotifyPropertyChanged("WindowBounds");
 
                     if (NativeMethods.DwmIsCompositionEnabled())
-                        Thumbnail = GetThumbnail();
+                        NotifyPropertyChanged("Thumbnail");
+                    //Thumbnail = GetThumbnail();
                 }
             };
 
-            boundsTimer.Start();
+            //boundsTimer.Start();
         }
 
         /*public ProcessWindow(AppxPackage package)
