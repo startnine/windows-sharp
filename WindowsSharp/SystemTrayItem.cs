@@ -48,7 +48,7 @@ namespace WindowsSharp
             {
                 List<SystemTrayItem> items = new List<SystemTrayItem>();
 
-                var rawItems = _callback.items;
+                List<NativeMethods.NOTIFYITEM> rawItems = _callback.items.ToList();
                 foreach (NativeMethods.NOTIFYITEM t in rawItems)
                     items.Add(new SystemTrayItem(t));
 
@@ -80,8 +80,16 @@ namespace WindowsSharp
         {
             get
             {
-                Debug.WriteLine("ICON HANDLE: " + _item.hIcon.ToString());
-                return Icon.FromHandle(_item.hIcon);
+                //Debug.WriteLine("ICON HANDLE: " + _item.hIcon.ToString());
+                try
+                {
+                    return Icon.FromHandle(_item.hIcon);
+                }
+                catch (ArgumentException ex)
+                {
+                    Debug.WriteLine("SystemTrayItem.ItemIcon machine broke: " + ex);
+                    return null;
+                }
             }
             private set
             {
@@ -119,7 +127,7 @@ namespace WindowsSharp
                 DisplayMode = TrayDisplayMode.ShowAlways;
 
             NotifyPropertyChanged("ItemIcon");
-            Debug.WriteLine("Item window handle: " + _item.hWnd.ToString());
+            //Debug.WriteLine("Item window handle: " + _item.hWnd.ToString());
         }
 
         public delegate void CallBack(IntPtr notifyitem);
