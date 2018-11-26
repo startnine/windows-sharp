@@ -26,6 +26,28 @@ namespace WindowsSharp.Processes
             }
         }
 
+        public static void PeekDesktop()
+        {
+            uint peekOn = 1;
+            uint peekType = 1;
+
+            if (Environment.OSVersion.Version >= new Version(6, 2, 8400, 0))
+                NativeMethods.DwmpActivateLivePreview(peekOn, IntPtr.Zero, IntPtr.Zero, peekType, UIntPtr.Zero);
+            else
+                NativeMethods.DwmpActivateLivePreview(peekOn, IntPtr.Zero, IntPtr.Zero, peekType);
+        }
+
+        public static void UnpeekDesktop()
+        {
+            uint peekOn = 0;
+            uint peekType = 1;
+
+            if (Environment.OSVersion.Version >= new Version(6, 2, 8400, 0))
+                NativeMethods.DwmpActivateLivePreview(peekOn, IntPtr.Zero, IntPtr.Zero, peekType, UIntPtr.Zero);
+            else
+                NativeMethods.DwmpActivateLivePreview(peekOn, IntPtr.Zero, IntPtr.Zero, peekType);
+        }
+
         public static event EventHandler<WindowEventArgs> WindowOpened;
 
         internal static void RaiseWindowOpened(IntPtr hwnd)
@@ -209,20 +231,24 @@ namespace WindowsSharp.Processes
             var style = NativeMethods.GetWindowLong(hwnd, NativeMethods.GwlStyle);
             var exStyle = NativeMethods.GetWindowLong(hwnd, NativeMethods.GwlExStyle);
             var exStyleToolWindow = exStyle;
+            bool visible = NativeMethods.IsWindowVisible(hwnd);
+            bool dimensionsAreNonZero = false;
+            if (NativeMethods.GetWindowRect(hwnd, out NativeMethods.RECT bounds))
+                dimensionsAreNonZero = (bounds.Right > bounds.Left) && (bounds.Bottom > bounds.Top);
             //exStyleToolWindow |= NativeMethods.WsExToolWindow;
 
             if (Environment.Is64BitProcess)
                 return //(NativeMethods.WsVisible == (style.ToInt64() & NativeMethods.WsVisible))
                        //&& ((style.ToInt64() & NativeMethods.WsChild) == style.ToInt64())
-                    NativeMethods.IsWindowVisible(hwnd)
-                    //&& (NativeMethods.WsBorder == (style.ToInt64() & NativeMethods.WsBorder))
+                       //&& (NativeMethods.WsBorder == (style.ToInt64() & NativeMethods.WsBorder))
+                    visible  && dimensionsAreNonZero
                     && ((style.ToInt64() & ~NativeMethods.WsChild) == style.ToInt64())
                     && ((exStyle.ToInt64() & ~NativeMethods.WsExToolWindow) == exStyle.ToInt64());
             else
                 return //(NativeMethods.WsVisible == (style.ToInt32() & NativeMethods.WsVisible))
                        //&& ((style.ToInt32() & NativeMethods.WsChild) == style.ToInt32())
-                    NativeMethods.IsWindowVisible(hwnd)
-                    //&& (NativeMethods.WsBorder == (style.ToInt32() & NativeMethods.WsBorder))
+                       //&& (NativeMethods.WsBorder == (style.ToInt32() & NativeMethods.WsBorder))
+                    visible && dimensionsAreNonZero
                     && ((style.ToInt32() & ~NativeMethods.WsChild) == style.ToInt32())
                     && ((exStyle.ToInt32() & ~NativeMethods.WsExToolWindow) == exStyle.ToInt32());
         }
@@ -458,15 +484,24 @@ namespace WindowsSharp.Processes
                 NativeMethods.RECT windowRect = new NativeMethods.RECT();
                 NativeMethods.GetWindowRect(handle, out windowRect);
 
+                NativeMethods.RECT clientRect = new NativeMethods.RECT();
+                NativeMethods.GetWindowRect(handle, out clientRect);
+
+                Point point = new Point(0, 0);
+                NativeMethods.ClientToScreen(handle, ref point);
+
                 int width = windowRect.Right - windowRect.Left;
                 int height = windowRect.Bottom - windowRect.Top;
+
+                //int left = (point.X - windowRect.Left) / 2;
+                //int top = (point.Y - windowRect.Top) / 2;
 
                 IntPtr hdcDest = NativeMethods.CreateCompatibleDC(hdcSrc);
                 IntPtr hBitmap = NativeMethods.CreateCompatibleBitmap(hdcSrc, width, height);
 
                 IntPtr hOld = NativeMethods.SelectObject(hdcDest, hBitmap);
 
-                NativeMethods.BitBlt(hdcDest, 0, 0, width, height, hdcSrc, 0, 0, 13369376);
+                NativeMethods.BitBlt(hdcDest, 0, 0, width, height, hdcSrc, 0, 0, 13369376); //NativeMethods.BitBlt(hdcDest, left, top, width, height, hdcSrc, left, top, 13369376);
                 NativeMethods.SelectObject(hdcDest, hOld);
                 NativeMethods.DeleteDC(hdcDest);
                 NativeMethods.ReleaseDC(handle, hdcSrc);
@@ -627,7 +662,7 @@ namespace WindowsSharp.Processes
         public void Peek(IntPtr topmostHandle)
         {
             uint peekOn = 1;
-            uint peekType = 1;
+            uint peekType = 3;
             _topmostHandle = topmostHandle;
             //IntPtr topmostHandle = IntPtr.Zero;
             //Debug.WriteLine("Peek target title: " + new ProcessWindow(Handle).Title);
@@ -641,7 +676,7 @@ namespace WindowsSharp.Processes
         public void Unpeek()
         {
             uint peekOn = 0;
-            uint peekType = 1;
+            uint peekType = 3;
             //IntPtr topmostHandle = IntPtr.Zero;
             //Debug.WriteLine("Unpeek target title: " + new ProcessWindow(Handle).Title);
 
