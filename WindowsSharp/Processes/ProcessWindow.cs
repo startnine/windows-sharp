@@ -10,11 +10,17 @@ using System.Windows.Automation;
 using System.Windows.Forms;
 using Timer = System.Timers.Timer;
 using static WindowsSharp.AppxMethods;
+using System.IO;
 
 namespace WindowsSharp.Processes
 {
     public class ProcessWindow : INotifyPropertyChanged
     {
+        static bool IsWindows7
+        {
+            get => Environment.OSVersion.Version < new Version(6, 2, 8400, 0);
+        }
+
         private static ProcessWindow _activeWindow = new ProcessWindow(NativeMethods.GetForegroundWindow());
         public static ProcessWindow ActiveWindow
         {
@@ -31,7 +37,7 @@ namespace WindowsSharp.Processes
             uint peekOn = 1;
             uint peekType = 1;
 
-            if (Environment.OSVersion.Version >= new Version(6, 2, 8400, 0))
+            if (!IsWindows7)
                 NativeMethods.DwmpActivateLivePreview(peekOn, IntPtr.Zero, IntPtr.Zero, peekType, UIntPtr.Zero);
             else
                 NativeMethods.DwmpActivateLivePreview(peekOn, IntPtr.Zero, IntPtr.Zero, peekType);
@@ -42,7 +48,7 @@ namespace WindowsSharp.Processes
             uint peekOn = 0;
             uint peekType = 1;
 
-            if (Environment.OSVersion.Version >= new Version(6, 2, 8400, 0))
+            if (!IsWindows7)
                 NativeMethods.DwmpActivateLivePreview(peekOn, IntPtr.Zero, IntPtr.Zero, peekType, UIntPtr.Zero);
             else
                 NativeMethods.DwmpActivateLivePreview(peekOn, IntPtr.Zero, IntPtr.Zero, peekType);
@@ -57,7 +63,7 @@ namespace WindowsSharp.Processes
 
         internal static void RaiseWindowOpened(IntPtr hwnd, bool isVisibilityChange)
         {
-            ProcessWindow.WindowOpened?.Invoke(null, new WindowEventArgs(new ProcessWindow(hwnd))
+            ProcessWindow.WindowOpened?.Invoke(null, new WindowEventArgs(GetProcessWindowFromHandle(hwnd))
             {
                 IsVisibilityChange = isVisibilityChange
             });
@@ -81,12 +87,47 @@ namespace WindowsSharp.Processes
 
         internal static void RaiseWindowClosed(IntPtr hwnd, bool isVisibilityChange)
         {
-            ProcessWindow.WindowClosed?.Invoke(null, new WindowEventArgs(new ProcessWindow(hwnd))
+            ProcessWindow.WindowClosed?.Invoke(null, new WindowEventArgs(GetProcessWindowFromHandle(hwnd))
             {
                 IsVisibilityChange = isVisibilityChange
             });
             //Debug.WriteLine("WindowClosed");
         }
+
+        static IEnumerable<ProcessWindow> GetMetroApps()
+        {
+            if (!IsWindows7)
+            {
+                /*foreach (var p in Process.GetProcesses())
+                {
+                    var package = AppxPackage.FromProcess(p);
+                    if (package != null)
+                    {
+                        yield return new ProcessWindow(package);
+                    }
+                }*/
+                var collection = new List<IntPtr>();
+
+                Boolean Filter(IntPtr hWnd, Int32 lParam)
+                {
+                    var strbTitle = new StringBuilder(NativeMethods.GetWindowTextLength(hWnd));
+                    NativeMethods.GetWindowText(hWnd, strbTitle, strbTitle.Capacity + 1);
+                    var strTitle = strbTitle.ToString();
+
+
+                    if (NativeMethods.IsWindowVisible(hWnd) && string.IsNullOrEmpty(strTitle) == false)
+                        collection.Add(hWnd);
+
+                    return true;
+                }
+
+                if (!NativeMethods.EnumDesktopWindows(IntPtr.Zero, Filter, IntPtr.Zero)) yield break;
+
+                foreach (var hwnd in collection)
+                    yield return GetProcessWindowFromHandle(hwnd);
+            }
+        }
+
 
         /*static IEnumerable<ProcessWindow> GetMetroApps()
         {
@@ -121,7 +162,7 @@ namespace WindowsSharp.Processes
                     var strTitle = strbTitle.ToString();
 
 
-                    if (NativeMethods.IsWindowVisible(hWnd) && string.IsNullOrEmpty(strTitle) == false)
+                    //if (NativeMethods.IsWindowVisible(hWnd) && string.IsNullOrEmpty(strTitle) == false)
                         collection.Add(hWnd);
 
                     return true;
@@ -130,11 +171,33 @@ namespace WindowsSharp.Processes
                 if (!NativeMethods.EnumDesktopWindows(IntPtr.Zero, Filter, IntPtr.Zero)) yield break;
 
                 foreach (var hwnd in collection)
-                    yield return new ProcessWindow(hwnd);
+                    yield return GetProcessWindowFromHandle(hwnd);
 
-                /*foreach (var w in GetMetroApps())
+                /*var apps = GetMetroApps();
+                foreach (ProcessWindow w in apps)
                     yield return w;*/
             }
+        }
+
+        static ProcessWindow GetProcessWindowFromHandle(IntPtr hwnd)
+        {
+            if (!IsWindows7)
+            {
+                var package = AppxPackage.FromWindow(hwnd);
+
+                if (package != null)
+                {
+                    Debug.WriteLine("package != null, " + package.DisplayName);
+                    return new ProcessWindow(package, hwnd);
+                }
+                else
+                {
+                    //Debug.WriteLine("package == null");
+                    return new ProcessWindow(hwnd);
+                }
+            }
+            else
+                return new ProcessWindow(hwnd);
         }
 
         //static Int32 TASKSTYLE = 0x10000000;// | 0x00800000;
@@ -186,7 +249,7 @@ namespace WindowsSharp.Processes
                     var strTitle = strbTitle.ToString();
 
 
-                    if (NativeMethods.IsWindowVisible(hWnd) && string.IsNullOrEmpty(strTitle) == false)
+                    if (NativeMethods.IsWindowVisible(hWnd) && (string.IsNullOrEmpty(strTitle) == false) && IsWindowUserAccessible(hWnd))
                         collection.Add(hWnd);
 
                     return true;
@@ -196,32 +259,33 @@ namespace WindowsSharp.Processes
 
                 foreach (var hwnd in collection)
                 {
-                    try
+                    if (!IsWindows7)
+                        yield return GetProcessWindowFromHandle(hwnd);
+                    /*try
+                    {*/
+                    /*if (Environment.Is64BitProcess)
                     {
-                        /*if (Environment.Is64BitProcess)
+                        if ((TASKSTYLE == (TASKSTYLE & NativeMethods.GetWindowLong(hwnd, NativeMethods.GwlStyle).ToInt64())) && ((NativeMethods.GetWindowLong(hwnd, NativeMethods.GwlExStyle).ToInt64() & NativeMethods.WsExToolWindow) != NativeMethods.WsExToolWindow))
                         {
-                            if ((TASKSTYLE == (TASKSTYLE & NativeMethods.GetWindowLong(hwnd, NativeMethods.GwlStyle).ToInt64())) && ((NativeMethods.GetWindowLong(hwnd, NativeMethods.GwlExStyle).ToInt64() & NativeMethods.WsExToolWindow) != NativeMethods.WsExToolWindow))
-                            {
-                                yield return new ProcessWindow(hwnd);
-                            }
-                        }
-                        else
-                        {
-                            if ((TASKSTYLE == (TASKSTYLE & NativeMethods.GetWindowLong(hwnd, NativeMethods.GwlStyle).ToInt32())) && ((NativeMethods.GetWindowLong(hwnd, NativeMethods.GwlExStyle).ToInt32() & NativeMethods.WsExToolWindow) != NativeMethods.WsExToolWindow))
-                            {
-                                yield return new ProcessWindow(hwnd);
-                            }
-                        }*/
-                        if (IsWindowUserAccessible(hwnd))
                             yield return new ProcessWindow(hwnd);
+                        }
                     }
+                    else
+                    {
+                        if ((TASKSTYLE == (TASKSTYLE & NativeMethods.GetWindowLong(hwnd, NativeMethods.GwlStyle).ToInt32())) && ((NativeMethods.GetWindowLong(hwnd, NativeMethods.GwlExStyle).ToInt32() & NativeMethods.WsExToolWindow) != NativeMethods.WsExToolWindow))
+                        {
+                            yield return new ProcessWindow(hwnd);
+                        }
+                    }*/
+                    /*}
                     finally
                     {
 
-                    }
+                    }*/
                 }
 
-                /*foreach (var w in GetMetroApps())
+                /*var apps = GetMetroApps();
+                foreach (ProcessWindow w in apps)
                     yield return w;*/
             }
         }
@@ -294,11 +358,11 @@ namespace WindowsSharp.Processes
             private set;
         }
 
-        /*public AppxPackage Package
+        public AppxPackage Package
         {
             get;
             private set;
-        }*/
+        } = null;
 
         public Process Process
         {
@@ -315,13 +379,18 @@ namespace WindowsSharp.Processes
         {
             get
             {
-                if (_windowTitle == string.Empty)
-                    _windowTitle = GetWindowTitle();
-                /*var strbTitle = new StringBuilder(NativeMethods.GetWindowTextLength(Handle));
-                NativeMethods.GetWindowText(Handle, strbTitle, strbTitle.Capacity + 1);
-                return strbTitle.ToString();*/
+                if ((!IsWindows7) && (Package != null))
+                    return Package.DisplayName;
+                else
+                {
+                    if (_windowTitle == string.Empty)
+                        _windowTitle = GetWindowTitle();
+                    /*var strbTitle = new StringBuilder(NativeMethods.GetWindowTextLength(Handle));
+                    NativeMethods.GetWindowText(Handle, strbTitle, strbTitle.Capacity + 1);
+                    return strbTitle.ToString();*/
 
-                return _windowTitle;
+                    return _windowTitle;
+                }
             }
             internal set
             {
@@ -354,8 +423,22 @@ namespace WindowsSharp.Processes
         {
             Rectangle rectangle = new Rectangle();
 
-            if (NativeMethods.GetWindowRect(Handle, out NativeMethods.RECT rect))
-                rectangle = new Rectangle(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top);
+            if (IsMinimized)
+            {
+                NativeMethods.WINDOWPLACEMENT placement = new NativeMethods.WINDOWPLACEMENT();
+                placement.Length = Marshal.SizeOf(placement);
+                if (NativeMethods.GetWindowPlacement(Handle, ref placement))
+                {
+                    var pRect = placement.NormalPosition;
+                    rectangle = new Rectangle(pRect.Left, pRect.Top, pRect.Right - pRect.Left, pRect.Bottom - pRect.Top);
+                }
+            }
+            else
+            {
+                if (NativeMethods.GetWindowRect(Handle, out NativeMethods.RECT rect))
+                    rectangle = new Rectangle(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top);
+            }
+
 
             return rectangle;
         }
@@ -378,16 +461,16 @@ namespace WindowsSharp.Processes
         {
             get
             {
-                /*if ((Environment.OSVersion.Version >= new Version(6, 2, 8400, 0)) && (Package != null))
+                if ((!IsWindows7) && (Package != null))
                 {
                     string path = Environment.ExpandEnvironmentVariables(Package.Logo);
-                    if (System.IO.File.Exists(path))
+                    if (File.Exists(path))
                         return new Icon(Package.Logo);
                     else
                         return null;
                 }
                 else
-                {*/
+                {
                     var iconHandle = NativeMethods.SendMessage(Handle, NativeMethods.WmGetIcon, NativeMethods.IconBig, 0);
 
                     if (iconHandle == IntPtr.Zero)
@@ -410,7 +493,7 @@ namespace WindowsSharp.Processes
                     {
                         NativeMethods.DestroyIcon(iconHandle);
                     }
-                //}
+                }
             }
         }
 
@@ -475,23 +558,26 @@ namespace WindowsSharp.Processes
             }
         }
 
-        static Image CaptureWindow(IntPtr handle)
+        Image CaptureWindow()
         {
             try
             {
-                IntPtr hdcSrc = NativeMethods.GetWindowDC(handle);
+                IntPtr hdcSrc = NativeMethods.GetWindowDC(Handle);
 
-                NativeMethods.RECT windowRect = new NativeMethods.RECT();
-                NativeMethods.GetWindowRect(handle, out windowRect);
+                /*NativeMethods.RECT windowRect = new NativeMethods.RECT();
+                NativeMethods.GetWindowRect(Handle, out windowRect);*/
 
-                NativeMethods.RECT clientRect = new NativeMethods.RECT();
-                NativeMethods.GetWindowRect(handle, out clientRect);
+                /*NativeMethods.RECT clientRect = new NativeMethods.RECT();
+                NativeMethods.GetWindowRect(Handle, out clientRect);
 
                 Point point = new Point(0, 0);
-                NativeMethods.ClientToScreen(handle, ref point);
+                NativeMethods.ClientToScreen(Handle, ref point);
 
                 int width = windowRect.Right - windowRect.Left;
-                int height = windowRect.Bottom - windowRect.Top;
+                int height = windowRect.Bottom - windowRect.Top;*/
+
+                int width = WindowBounds.Width;
+                int height = WindowBounds.Height;
 
                 //int left = (point.X - windowRect.Left) / 2;
                 //int top = (point.Y - windowRect.Top) / 2;
@@ -504,7 +590,7 @@ namespace WindowsSharp.Processes
                 NativeMethods.BitBlt(hdcDest, 0, 0, width, height, hdcSrc, 0, 0, 13369376); //NativeMethods.BitBlt(hdcDest, left, top, width, height, hdcSrc, left, top, 13369376);
                 NativeMethods.SelectObject(hdcDest, hOld);
                 NativeMethods.DeleteDC(hdcDest);
-                NativeMethods.ReleaseDC(handle, hdcSrc);
+                NativeMethods.ReleaseDC(Handle, hdcSrc);
 
                 Image image = Image.FromHbitmap(hBitmap);
                 NativeMethods.DeleteObject(hBitmap);
@@ -523,7 +609,7 @@ namespace WindowsSharp.Processes
         Image GetThumbnail()
         {
             if (NativeMethods.DwmIsCompositionEnabled())
-                return CaptureWindow(Handle);
+                return CaptureWindow();
             else
                 return null;
         }
@@ -546,7 +632,6 @@ namespace WindowsSharp.Processes
             Thumbnail = GetThumbnail();
 
             Timer timer = new Timer(10);
-            //{ Interval = 10 };
 
             timer.Elapsed += (sneder, args) =>
             {
@@ -591,13 +676,20 @@ namespace WindowsSharp.Processes
                     }
 
                     if (!IsMinimized)
+                    {
                         NotifyPropertyChanged("WindowBounds");
 
-                    if (NativeMethods.DwmIsCompositionEnabled())
-                        NotifyPropertyChanged("Thumbnail");
+                        if (NativeMethods.DwmIsCompositionEnabled())
+                            NotifyPropertyChanged("Thumbnail");
+                    }
                 }
             };
-            //SetWinEventHook
+            
+            NotifyPropertyChanged("WindowBounds");
+            if (NativeMethods.DwmIsCompositionEnabled())
+                NotifyPropertyChanged("WindowBounds");
+
+
             timer.Start();
 
             Timer boundsTimer = new Timer(100);
@@ -621,10 +713,55 @@ namespace WindowsSharp.Processes
             //boundsTimer.Start();
         }
 
-        /*public ProcessWindow(AppxPackage package)
+        public ProcessWindow(AppxPackage package, IntPtr hwnd)
         {
+            Handle = hwnd;
             Package = package;
-        }*/
+
+            Timer timer = new Timer(10);
+
+            timer.Elapsed += (sneder, args) =>
+            {
+                if (!NativeMethods.IsWindow(Handle))
+                {
+                    try
+                    {
+                        ProcessWindow.WindowClosed?.Invoke(null, new WindowEventArgs(this));
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine(ex);
+                    }
+                    timer.Stop();
+                }
+                else
+                {
+                    string currentTitle = GetWindowTitle();
+                    if (Title != currentTitle)
+                        Title = currentTitle;
+
+                    bool visibleNow = NativeMethods.IsWindowVisible(Handle);
+                    if (visibleNow != IsVisible)
+                    {
+
+                        if (visibleNow)
+                        {
+                            IsVisible = true;
+                            RaiseWindowOpened(Handle, true);
+                        }
+                        else
+                        {
+                            IsVisible = false;
+                            RaiseWindowClosed(Handle, true);
+                        }
+                    }
+
+                    //TODO: MINIMIZED/SUSPENDED
+                }
+            };
+
+            timer.Start();
+        }
 
         public bool Close()
         {
@@ -667,7 +804,7 @@ namespace WindowsSharp.Processes
             //IntPtr topmostHandle = IntPtr.Zero;
             //Debug.WriteLine("Peek target title: " + new ProcessWindow(Handle).Title);
 
-            if (Environment.OSVersion.Version >= new Version(6, 2, 8400, 0))
+            if (!IsWindows7)
                 NativeMethods.DwmpActivateLivePreview(peekOn, Handle, topmostHandle, peekType, UIntPtr.Zero);
             else
                 NativeMethods.DwmpActivateLivePreview(peekOn, Handle, topmostHandle, peekType);
@@ -680,7 +817,7 @@ namespace WindowsSharp.Processes
             //IntPtr topmostHandle = IntPtr.Zero;
             //Debug.WriteLine("Unpeek target title: " + new ProcessWindow(Handle).Title);
 
-            if (Environment.OSVersion.Version >= new Version(6, 2, 8400, 0))
+            if (!IsWindows7)
                 NativeMethods.DwmpActivateLivePreview(peekOn, Handle, _topmostHandle, peekType, UIntPtr.Zero);
             else
                 NativeMethods.DwmpActivateLivePreview(peekOn, Handle, _topmostHandle, peekType);

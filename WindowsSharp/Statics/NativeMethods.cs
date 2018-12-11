@@ -14,6 +14,46 @@ namespace WindowsSharp
 {
     public static class NativeMethods
     {
+        public enum ExitWindowsAction : UInt32
+        {
+            Logoff = 0,
+            Shutdown = 1,
+            Reboot = 2,
+            Force = 4,
+            Poweroff = 8
+        }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern Boolean LockWorkStation();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern Boolean ExitWindowsEx(ExitWindowsAction uFlags, int dwReason);
+
+        [DllImport("Powrprof.dll", SetLastError = true)]
+        public static extern Boolean SetSuspendState(Boolean hibernate, Boolean forceCritical, Boolean disableWakeEvent);
+
+        [DllImport("dwmapi.dll", EntryPoint = "#127")]
+        public static extern void DwmGetColorizationParameters(ref DwmColorizationParams param);
+
+        public struct DwmColorizationParams
+        {
+            public UInt32 ColorizationColor,
+                ColorizationAfterglow,
+                ColorizationColorBalance,
+                ColorizationAfterglowBalance,
+                ColorizationBlurBalance,
+                ColorizationGlassReflectionIntensity,
+                ColorizationOpaqueBlend;
+        }
+
+        [DllImport("uxtheme.dll", CharSet = CharSet.Auto)]
+        public static extern Int32 GetCurrentThemeName(StringBuilder pszThemeFileName, Int32 dwMaxNameChars, StringBuilder pszColorBuff, Int32 dwMaxColorChars, StringBuilder pszSizeBuff, Int32 cchMaxSizeChars);
+
+        [DllImport("shell32.dll", EntryPoint = "#261", CharSet = CharSet.Unicode, PreserveSig = false)]
+        public static extern void GetUserTilePath(String username, UInt32 whatever, // 0x80000000
+        StringBuilder picpath, Int32 maxLength);
+
         //Begin tray stuff ( https://gist.github.com/paulcbetts/e90c7d89624d1b1adc72 )
 
         [StructLayout(LayoutKind.Sequential)]
@@ -234,11 +274,11 @@ namespace WindowsSharp
 
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
+        public static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
 
         [Serializable]
         [StructLayout(LayoutKind.Sequential)]
-        internal struct WINDOWPLACEMENT
+        public struct WINDOWPLACEMENT
         {
             /// <summary>
             /// The length of the structure, in bytes. Before calling the GetWindowPlacement or SetWindowPlacement functions, set this member to sizeof(WINDOWPLACEMENT).
@@ -442,7 +482,7 @@ namespace WindowsSharp
             }
         }*/
 
-        /*public static void Show(int indent, AppxPackage package)
+        public static void Show(int indent, AppxPackage package)
         {
             string sindent = new string(' ', indent);
             Console.WriteLine(sindent + "FullName               : " + package.FullName);
@@ -805,7 +845,7 @@ namespace WindowsSharp
                 return value;
             }
 
-            [Guid("5842a140-ff9f-4166-8f5c-62f5b7b0c781"), ComImport]
+        [Guid("5842a140-ff9f-4166-8f5c-62f5b7b0c781"), ComImport]
             public class AppxFactory
             {
             }
@@ -849,8 +889,9 @@ namespace WindowsSharp
                 [PreserveSig]
                 int GetStringValue([MarshalAs(UnmanagedType.LPWStr)] string name, [MarshalAs(UnmanagedType.LPWStr)] out string vaue);
             }
+        }
 
-            [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
+        [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
             public static extern int SHLoadIndirectString(string pszSource, StringBuilder pszOutBuf, int cchOutBuf, IntPtr ppvReserved);
 
             [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
@@ -875,12 +916,12 @@ namespace WindowsSharp
             public static extern int ClosePackageInfo(IntPtr packageInfoReference);
 
             [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-            public static extern int GetPackageFullName(IntPtr hProcess, ref int packageFullNameLength, StringBuilder packageFullName);*/
+            public static extern int GetPackageFullName(IntPtr hProcess, ref int packageFullNameLength, StringBuilder packageFullName);
 
             [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
             public static extern int GetApplicationUserModelId(IntPtr hProcess, ref int applicationUserModelIdLength, StringBuilder applicationUserModelId);
 
-            /*[Flags]
+            [Flags]
             public enum PackageConstants
             {
                 PACKAGE_FILTER_ALL_LOADED = 0x00000000,
@@ -907,20 +948,19 @@ namespace WindowsSharp
                 public PACKAGE_ID packageId;
             }
 
-            [StructLayout(LayoutKind.Sequential, Pack = 4)]
-            public struct PACKAGE_ID
-            {
-                public int reserved;
-                public AppxPackageArchitecture processorArchitecture;
-                public ushort VersionRevision;
-                public ushort VersionBuild;
-                public ushort VersionMinor;
-                public ushort VersionMajor;
-                public IntPtr name;
-                public IntPtr publisher;
-                public IntPtr resourceId;
-                public IntPtr publisherId;
-            }
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        public struct PACKAGE_ID
+        {
+            public int reserved;
+            public AppxPackageArchitecture processorArchitecture;
+            public ushort VersionRevision;
+            public ushort VersionBuild;
+            public ushort VersionMinor;
+            public ushort VersionMajor;
+            public IntPtr name;
+            public IntPtr publisher;
+            public IntPtr resourceId;
+            public IntPtr publisherId;
         }
 
         public class AppxApp
@@ -969,6 +1009,6 @@ namespace WindowsSharp
             x64 = 9,
             Neutral = 11,
             Arm64 = 12
-        }*/
+        }
     }
 }

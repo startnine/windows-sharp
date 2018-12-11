@@ -150,13 +150,30 @@ namespace WindowsSharp.DiskItems
             {
                 if ((File.Exists(ItemPath)) || (Directory.Exists(ItemPath)))
                 {
-                    UInt32 flags = (0x00000001 | 0x100);
-                    NativeMethods.ShFileInfo shInfo = new NativeMethods.ShFileInfo();
-                    NativeMethods.SHGetFileInfo(ItemPath, 0, ref shInfo, (UInt32)Marshal.SizeOf(shInfo), flags);
-                    //return System.Drawing.Icon.FromHandle(shInfo.hIcon);
-                    System.Drawing.Icon result = (System.Drawing.Icon)(System.Drawing.Icon.FromHandle(shInfo.hIcon).Clone());
-                    NativeMethods.DestroyIcon(shInfo.hIcon);
-                    return result;
+                    var over = IconPref.IconOverrideFromPath(ItemPath);
+                    if (over != null)
+                    {
+                        int iconsize = 16;
+                        System.Drawing.Image source = System.Drawing.Image.FromFile(Path.Combine(IconPref.iconsPath, over.ReplacementName), true);
+
+                        System.Drawing.Bitmap target = new System.Drawing.Bitmap(iconsize, iconsize, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+                        System.Drawing.Graphics g = System.Drawing.Graphics.FromImage(target);
+                        g.DrawImage(source, 0, 0, iconsize, iconsize);
+
+                        return System.Drawing.Icon.FromHandle(target.GetHicon());
+                        //return new System.Drawing.Icon(Path.Combine(IconPref.iconsPath, over.ReplacementName));
+                    }
+                    else
+                    {
+                        UInt32 flags = (0x00000001 | 0x100);
+                        NativeMethods.ShFileInfo shInfo = new NativeMethods.ShFileInfo();
+                        NativeMethods.SHGetFileInfo(ItemPath, 0, ref shInfo, (UInt32)Marshal.SizeOf(shInfo), flags);
+                        //return System.Drawing.Icon.FromHandle(shInfo.hIcon);
+                        System.Drawing.Icon result = (System.Drawing.Icon)(System.Drawing.Icon.FromHandle(shInfo.hIcon).Clone());
+                        NativeMethods.DestroyIcon(shInfo.hIcon);
+                        return result;
+                    }
                 }
                 else return null;
             }
@@ -168,12 +185,29 @@ namespace WindowsSharp.DiskItems
             {
                 if ((File.Exists(ItemPath)) || (Directory.Exists(ItemPath)))
                 {
-                    UInt32 flags = (0x000000000 | 0x100);
-                    NativeMethods.ShFileInfo shInfo = new NativeMethods.ShFileInfo();
-                    NativeMethods.SHGetFileInfo(ItemPath, 0, ref shInfo, (UInt32)Marshal.SizeOf(shInfo), flags);
-                    System.Drawing.Icon result = (System.Drawing.Icon)(System.Drawing.Icon.FromHandle(shInfo.hIcon).Clone());
-                    NativeMethods.DestroyIcon(shInfo.hIcon);
-                    return result;
+                    var over = IconPref.IconOverrideFromPath(ItemPath);
+                    if (over != null)
+                    {
+                        int iconsize = 32;
+                        System.Drawing.Image source = System.Drawing.Image.FromFile(Path.Combine(IconPref.iconsPath, over.ReplacementName), true);
+
+                        System.Drawing.Bitmap target = new System.Drawing.Bitmap(iconsize, iconsize, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+                        System.Drawing.Graphics g = System.Drawing.Graphics.FromImage(target);
+                        g.DrawImage(source, 0, 0, iconsize, iconsize);
+
+                        return System.Drawing.Icon.FromHandle(target.GetHicon());
+                        //return new System.Drawing.Icon(Path.Combine(IconPref.iconsPath, over.ReplacementName));
+                    }
+                    else
+                    {
+                        UInt32 flags = (0x000000000 | 0x100);
+                        NativeMethods.ShFileInfo shInfo = new NativeMethods.ShFileInfo();
+                        NativeMethods.SHGetFileInfo(ItemPath, 0, ref shInfo, (UInt32)Marshal.SizeOf(shInfo), flags);
+                        System.Drawing.Icon result = (System.Drawing.Icon)(System.Drawing.Icon.FromHandle(shInfo.hIcon).Clone());
+                        NativeMethods.DestroyIcon(shInfo.hIcon);
+                        return result;
+                    }
                 }
                 else return null;
             }
@@ -185,18 +219,35 @@ namespace WindowsSharp.DiskItems
             {
                 if ((File.Exists(ItemPath)) || (Directory.Exists(ItemPath)))
                 {
-                    UInt32 flags = (0x000000000 | 0x100);
-                    NativeMethods.ShFileInfo shInfo = new NativeMethods.ShFileInfo();
-                    NativeMethods.SHGetFileInfo(ItemPath, 0, ref shInfo, (UInt32)Marshal.SizeOf(shInfo), flags);
-                    System.Drawing.Icon result = (System.Drawing.Icon)(System.Drawing.Icon.FromHandle(shInfo.hIcon).Clone());
-                    NativeMethods.DestroyIcon(shInfo.hIcon);
+                    var over = IconPref.IconOverrideFromPath(ItemPath);
+                    if (over != null)
+                    {
+                        int iconsize = 48;
+                        System.Drawing.Image source = System.Drawing.Image.FromFile(Path.Combine(IconPref.iconsPath, over.ReplacementName), true);
 
-                    var hres = NativeMethods.SHGetImageList(0x2, ref NativeMethods.iidImageList, out NativeMethods.IImageList list);
-                    IntPtr resultHandle = IntPtr.Zero;
-                    list.GetIcon(shInfo.iIcon, 1, ref resultHandle);
-                    System.Drawing.Icon finalResult = (System.Drawing.Icon)(System.Drawing.Icon.FromHandle(resultHandle).Clone());
-                    NativeMethods.DestroyIcon(resultHandle);
-                    return finalResult;
+                        System.Drawing.Bitmap target = new System.Drawing.Bitmap(iconsize, iconsize, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+                        System.Drawing.Graphics g = System.Drawing.Graphics.FromImage(target);
+                        g.DrawImage(source, 0, 0, iconsize, iconsize);
+
+                        return System.Drawing.Icon.FromHandle(target.GetHicon());
+                        //return new System.Drawing.Icon(Path.Combine(IconPref.iconsPath, over.ReplacementName));
+                    }
+                    else
+                    {
+                        UInt32 flags = (0x000000000 | 0x100);
+                        NativeMethods.ShFileInfo shInfo = new NativeMethods.ShFileInfo();
+                        NativeMethods.SHGetFileInfo(ItemPath, 0, ref shInfo, (UInt32)Marshal.SizeOf(shInfo), flags);
+                        System.Drawing.Icon result = (System.Drawing.Icon)(System.Drawing.Icon.FromHandle(shInfo.hIcon).Clone());
+                        NativeMethods.DestroyIcon(shInfo.hIcon);
+
+                        var hres = NativeMethods.SHGetImageList(0x2, ref NativeMethods.iidImageList, out NativeMethods.IImageList list);
+                        IntPtr resultHandle = IntPtr.Zero;
+                        list.GetIcon(shInfo.iIcon, 1, ref resultHandle);
+                        System.Drawing.Icon finalResult = (System.Drawing.Icon)(System.Drawing.Icon.FromHandle(resultHandle).Clone());
+                        NativeMethods.DestroyIcon(resultHandle);
+                        return finalResult;
+                    }
                 }
                 else return null;
             }
@@ -208,18 +259,35 @@ namespace WindowsSharp.DiskItems
             {
                 if ((File.Exists(ItemPath)) || (Directory.Exists(ItemPath)))
                 {
-                    UInt32 flags = (0x000000000 | 0x100);
-                    NativeMethods.ShFileInfo shInfo = new NativeMethods.ShFileInfo();
-                    NativeMethods.SHGetFileInfo(ItemPath, 0, ref shInfo, (UInt32)Marshal.SizeOf(shInfo), flags);
-                    System.Drawing.Icon result = (System.Drawing.Icon)(System.Drawing.Icon.FromHandle(shInfo.hIcon).Clone());
-                    NativeMethods.DestroyIcon(shInfo.hIcon);
+                    var over = IconPref.IconOverrideFromPath(ItemPath);
+                    if (over != null)
+                    {
+                        int iconsize = 256;
+                        System.Drawing.Image source = System.Drawing.Image.FromFile(Path.Combine(IconPref.iconsPath, over.ReplacementName), true);
 
-                    var hres = NativeMethods.SHGetImageList(0x4, ref NativeMethods.iidImageList, out NativeMethods.IImageList list);
-                    IntPtr resultHandle = IntPtr.Zero;
-                    list.GetIcon(shInfo.iIcon, 1, ref resultHandle);
-                    System.Drawing.Icon finalResult = (System.Drawing.Icon)(System.Drawing.Icon.FromHandle(resultHandle).Clone());
-                    NativeMethods.DestroyIcon(resultHandle);
-                    return finalResult;
+                        System.Drawing.Bitmap target = new System.Drawing.Bitmap(iconsize, iconsize, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+                        System.Drawing.Graphics g = System.Drawing.Graphics.FromImage(target);
+                        g.DrawImage(source, 0, 0, iconsize, iconsize);
+
+                        return System.Drawing.Icon.FromHandle(target.GetHicon());
+                        //return new System.Drawing.Icon(Path.Combine(IconPref.iconsPath, over.ReplacementName));
+                    }
+                    else
+                    {
+                        UInt32 flags = (0x000000000 | 0x100);
+                        NativeMethods.ShFileInfo shInfo = new NativeMethods.ShFileInfo();
+                        NativeMethods.SHGetFileInfo(ItemPath, 0, ref shInfo, (UInt32)Marshal.SizeOf(shInfo), flags);
+                        System.Drawing.Icon result = (System.Drawing.Icon)(System.Drawing.Icon.FromHandle(shInfo.hIcon).Clone());
+                        NativeMethods.DestroyIcon(shInfo.hIcon);
+
+                        var hres = NativeMethods.SHGetImageList(0x4, ref NativeMethods.iidImageList, out NativeMethods.IImageList list);
+                        IntPtr resultHandle = IntPtr.Zero;
+                        list.GetIcon(shInfo.iIcon, 1, ref resultHandle);
+                        System.Drawing.Icon finalResult = (System.Drawing.Icon)(System.Drawing.Icon.FromHandle(resultHandle).Clone());
+                        NativeMethods.DestroyIcon(resultHandle);
+                        return finalResult;
+                    }
                 }
                 else return null;
             }

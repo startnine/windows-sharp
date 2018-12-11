@@ -15,13 +15,13 @@ namespace WindowsSharp.Processes
 
             if (hprocess != IntPtr.Zero)
             {
-                try
-                {
+                /*try
+                {*/
                     int size = stringBuilder.Capacity;
 
                     if (NativeMethods.QueryFullProcessImageName(hprocess, 0, stringBuilder, out size))
                         returnValue = stringBuilder.ToString();
-                }
+                /*}
                 catch (Exception ex)
                 {
                     Debug.WriteLine(ex);
@@ -33,7 +33,7 @@ namespace WindowsSharp.Processes
                     {
                         Debug.WriteLine(exc);
                     }
-                }
+                }*/
             }
             /*var package = AppxPackage.FromProcess(process);
             if (package != null)
@@ -99,7 +99,7 @@ namespace WindowsSharp.Processes
             StringBuilder outputBuilder = new StringBuilder(outputLength);
 
 
-            int resultValue = AppxMethods.GetApplicationUserModelId(handle, ref outputLength, outputBuilder);
+            int resultValue = 1; AppxMethods.GetApplicationUserModelId(handle, ref outputLength, outputBuilder);
 
             if (resultValue == 0)
                 output = outputBuilder.ToString();

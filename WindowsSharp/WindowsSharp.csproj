@@ -45,14 +45,17 @@
     <Reference Include="UIAutomationClientsideProviders" />
     <Reference Include="UIAutomationProvider" />
     <Reference Include="UIAutomationTypes" />
+    <Reference Include="System.Runtime" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DiskItems\AppInfo.cs" />
     <Compile Include="DiskItems\DiskItem.cs" />
-    <Compile Include="Processes\NativeMethods.cs" />
+    <Compile Include="Statics\IconPref.cs" />
+    <Compile Include="Statics\NativeMethods.cs" />
     <Compile Include="Processes\ProcessExtensions.cs" />
     <Compile Include="Processes\ProcessWindow.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Statics\SystemContext.cs" />
     <Compile Include="SystemTrayItem.cs" />
   </ItemGroup>
   <ItemGroup />
