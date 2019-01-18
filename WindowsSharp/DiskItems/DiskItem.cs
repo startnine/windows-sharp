@@ -715,7 +715,7 @@ namespace WindowsSharp.DiskItems
             info.cbSize = System.Runtime.InteropServices.Marshal.SizeOf(info);
             return NativeMethods.ShellExecuteEx(ref info);*/
             bool returnValue = false;
-            try
+            /*try
             {
                 var info = new ProcessStartInfo(_itemPath)
                 {
@@ -726,49 +726,67 @@ namespace WindowsSharp.DiskItems
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("1 " + ex);
-                try
+                Debug.WriteLine("1 " + ex);*/
+            /*try
+            {
+                var info = new NativeMethods.SHELLEXECUTEINFO()
                 {
-                    var info = new NativeMethods.SHELLEXECUTEINFO()
-                    {
-                        lpFile = _itemPath,
-                        lpVerb = "properties"
-                    };
-                    return NativeMethods.ShellExecuteEx(ref info);
-                }
-                catch (Exception exc)
-                {
-                    Debug.WriteLine("2 " + exc);
-                    return false;
-                }
+                    lpFile = _itemPath,
+                    lpVerb = "properties"
+                };
+                returnValue = NativeMethods.ShellExecuteEx(ref info);
             }
+            catch (Exception exc)
+            {
+                //Debug.WriteLine("2 " + exc);
+                returnValue = false;
+            }
+            //}
 
             if (!returnValue)
+            {*/
+            try
             {
-                try
+                var info = new NativeMethods.SHELLEXECUTEINFO()
                 {
-                    var info = new NativeMethods.SHELLEXECUTEINFO()
-                    {
-                        lpFile = _itemPath,
-                        lpVerb = "properties",
-                        nShow = 5,
-                        fMask = 0x0000000C
-                    };
-                    //info.cbSize = sizeof(info);
-                    return NativeMethods.ShellExecuteEx(ref info);
-                }
-                catch (Exception exce)
+                    lpVerb = "properties",
+                    nShow = 1,
+                    fMask = 0x00000040 | 0x0000000C
+                };
+                if (ItemCategory == DiskItemCategory.Directory)
+                    info.lpDirectory = _itemPath;
+                else if ((ItemCategory == DiskItemCategory.File) | (ItemCategory == DiskItemCategory.Shortcut))
+                    info.lpFile = _itemPath;
+
+                info.cbSize = Marshal.SizeOf(info);
+                returnValue = NativeMethods.ShellExecuteEx(ref info);
+                /*IntPtr hwandle = IntPtr.Zero;
+
+                var propertiesTitle = ItemRealName + " Properties";
+                int i = 0;
+                while (hwandle == IntPtr.Zero)
                 {
-                    Debug.WriteLine("3 " + exce);
-                    return false;
-                }
+                    hwandle = NativeMethods.FindWindow("#32770", propertiesTitle);
+                    i++;
+                    Debug.WriteLine("Attempt " + i);
+                }*/
+                //System.Threading.Thread.Sleep(5);
             }
+            catch (Exception exce)
+            {
+                Debug.WriteLine(/*"3 " + */exce);
+                returnValue = false;
+            }
+            //}
 
             return returnValue;
         }
 
         private class NativeMethods
         {
+            [DllImport("user32.dll", SetLastError = true)]
+            public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
             [DllImport("shell32.dll", EntryPoint = "#727")]
             public extern static int SHGetImageList(int iImageList, ref Guid riid, out IImageList ppv);
 
@@ -1016,8 +1034,7 @@ namespace WindowsSharp.DiskItems
             [DllImport("shell32.dll")]
             public static extern bool ShellExecuteEx(ref SHELLEXECUTEINFO lpExecInfo);
 
-            [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-
+            [StructLayout(LayoutKind.Sequential)]//, CharSet = CharSet.Auto)]
             public struct SHELLEXECUTEINFO
             {
                 public int cbSize;
@@ -1028,13 +1045,13 @@ namespace WindowsSharp.DiskItems
                 public String lpParameters;
                 public String lpDirectory;
                 public int nShow;
-                public int hInstApp;
-                public int lpIDList;
+                public IntPtr hInstApp; //int
+                public IntPtr lpIDList; //int
                 public String lpClass;
-                public int hkeyClass;
+                public IntPtr hkeyClass; //int
                 public uint dwHotKey;
-                public int hIcon;
-                public int hProcess;
+                public IntPtr hIcon; //int
+                public IntPtr hProcess; //int
             }
 
             public enum ActivateOptions
