@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
 namespace WindowsSharp.DiskItems
 {
-    public class DiskItem
+    public class DiskItem : INotifyPropertyChanged
     {
         public static List<DiskItem> AllApps
         {
@@ -96,7 +98,7 @@ namespace WindowsSharp.DiskItems
             }
         }
 
-        public String ItemRealName
+        public string ItemRealName
         {
             get
             {
@@ -127,6 +129,49 @@ namespace WindowsSharp.DiskItems
             }
         }
 
+        public bool? RenameItem(string newName)
+        {
+            bool? returnValue = null;
+            string oldPath = ItemPath;
+            string newPath = Path.Combine(Directory.GetParent(ItemPath).ToString(), newName);
+            if ((!File.Exists(newPath)) && (!Directory.Exists(newPath)))
+            {
+                if ((ItemCategory == DiskItemCategory.File) || (ItemCategory == DiskItemCategory.Shortcut))
+                {
+                    try
+                    {
+                        File.Move(oldPath, newPath);
+                        returnValue = true;
+                    }
+                    catch (IOException ex)
+                    {
+                        returnValue = false;
+                    }
+                }
+                else if (ItemCategory == DiskItemCategory.Directory)
+                {
+                    try
+                    {
+                        Directory.Move(oldPath, newPath);
+                        returnValue = true;
+                    }
+                    catch (IOException ex)
+                    {
+                        returnValue = false;
+                    }
+                }
+                else
+                    returnValue = false;
+            }
+
+            if (returnValue == true)
+            {
+                ItemPath = newPath;
+            }
+
+            return returnValue;
+        }
+
         string _itemDisplayName = null;
 
         public String ItemDisplayName
@@ -141,6 +186,7 @@ namespace WindowsSharp.DiskItems
             set
             {
                 _itemDisplayName = value;
+                NotifyPropertyChanged();
             }
         }
 
@@ -326,7 +372,13 @@ namespace WindowsSharp.DiskItems
                 }
                 else return _itemPath;
             }
-            set => _itemPath = value;
+            set
+            {
+                _itemPath = value;
+                NotifyPropertyChanged();
+                NotifyPropertyChanged("ItemDisplayName");
+                NotifyPropertyChanged("ItemRealName");
+            }
         }
 
         String GetInternetShortcut(String _rawPath)
@@ -398,7 +450,17 @@ namespace WindowsSharp.DiskItems
             }
         }
 
-        public AppInfo ItemAppInfo { get; set; }
+        AppInfo _appInfo;
+
+        public AppInfo ItemAppInfo
+        {
+            get => _appInfo;
+            set
+            {
+                _appInfo = value;
+                NotifyPropertyChanged();
+            }
+        }
 
         public enum DiskItemCategory
         {
@@ -408,9 +470,29 @@ namespace WindowsSharp.DiskItems
             App
         }
 
-        public DiskItemCategory ItemCategory { get; set; }
+        DiskItemCategory _itemCategory;
 
-        public String FriendlyItemType { get; set; }
+        public DiskItemCategory ItemCategory
+        {
+            get => _itemCategory;
+            set
+            {
+                _itemCategory = value;
+                NotifyPropertyChanged();
+            }
+        }
+
+        string _friendlyItemType;
+
+        public string FriendlyItemType
+        {
+            get => _friendlyItemType;
+            set
+            {
+                _friendlyItemType = value;
+                NotifyPropertyChanged();
+            }
+        }
 
         public List<DiskItem> SubItems
         {
@@ -478,6 +560,13 @@ namespace WindowsSharp.DiskItems
         }
 
         NativeMethods.ShFileInfo _fileInfo = new NativeMethods.ShFileInfo();
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void NotifyPropertyChanged([CallerMemberName] String propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
 
         public DiskItem(String path)
         {
