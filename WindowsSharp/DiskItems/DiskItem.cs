@@ -11,93 +11,6 @@ namespace WindowsSharp.DiskItems
 {
     public class DiskItem : INotifyPropertyChanged
     {
-        public static List<DiskItem> AllApps
-        {
-            get
-            {
-                List<DiskItem> items = new List<DiskItem>();
-
-                List<DiskItem> AllAppsAppDataItems = new List<DiskItem>();
-                foreach (var s in Directory.EnumerateFiles(Environment.ExpandEnvironmentVariables(@"%appdata%\Microsoft\Windows\Start Menu\Programs")))
-                {
-                    AllAppsAppDataItems.Add(new DiskItem(s));
-                }
-                foreach (var s in Directory.EnumerateDirectories(Environment.ExpandEnvironmentVariables(@"%appdata%\Microsoft\Windows\Start Menu\Programs")))
-                {
-                    AllAppsAppDataItems.Add(new DiskItem(s));
-                }
-
-                List<DiskItem> AllAppsProgramDataItems = new List<DiskItem>();
-                foreach (var s in Directory.EnumerateFiles(Environment.ExpandEnvironmentVariables(@"%programdata%\Microsoft\Windows\Start Menu\Programs")))
-                {
-                    AllAppsProgramDataItems.Add(new DiskItem(s));
-                }
-                foreach (var s in Directory.EnumerateDirectories(Environment.ExpandEnvironmentVariables(@"%programdata%\Microsoft\Windows\Start Menu\Programs")))
-                {
-                    AllAppsProgramDataItems.Add(new DiskItem(s));
-                }
-
-                List<DiskItem> AllAppsItems = new List<DiskItem>();
-                List<DiskItem> AllAppsReorgItems = new List<DiskItem>();
-                foreach (DiskItem t in AllAppsAppDataItems)
-                {
-                    var FolderIsDuplicate = false;
-
-                    foreach (DiskItem v in AllAppsProgramDataItems)
-                    {
-                        List<DiskItem> SubItemsList = new List<DiskItem>();
-
-                        if (Directory.Exists(t.ItemPath))
-                        {
-                            if (((t.ItemCategory == DiskItemCategory.Directory) & (v.ItemCategory == DiskItemCategory.Directory)) && ((t.ItemPath.Substring(t.ItemPath.LastIndexOf(@"\"))) == (v.ItemPath.Substring(v.ItemPath.LastIndexOf(@"\")))))
-                            {
-                                FolderIsDuplicate = true;
-                                foreach (var i in Directory.EnumerateDirectories(t.ItemPath))
-                                {
-                                    SubItemsList.Add(new DiskItem(i));
-                                }
-
-                                foreach (var j in Directory.EnumerateFiles(v.ItemPath))
-                                {
-                                    SubItemsList.Add(new DiskItem(j));
-                                }
-                            }
-                        }
-
-                        if (!AllAppsItems.Contains(v))
-                        {
-                            AllAppsItems.Add(v);
-                        }
-
-                        return SubItemsList;
-                    }
-
-                    if ((!AllAppsItems.Contains(t)) && (!FolderIsDuplicate))
-                    {
-                        AllAppsItems.Add(t);
-                    }
-                }
-
-                foreach (DiskItem x in AllAppsItems)
-                {
-                    if (File.Exists(x.ItemPath))
-                    {
-                        AllAppsReorgItems.Add(x);
-                    }
-                }
-
-                foreach (DiskItem x in AllAppsItems)
-                {
-                    if (Directory.Exists(x.ItemPath))
-                    {
-                        AllAppsReorgItems.Add(x);
-                    }
-                }
-
-                return AllAppsReorgItems;
-            }
-        }
-
         public string ItemRealName
         {
             get
@@ -627,6 +540,11 @@ namespace WindowsSharp.DiskItems
                     FriendlyItemType = "Modern App";
                 }
             }
+        }
+
+        public override string ToString()
+        {
+            return ItemDisplayName;
         }
 
         public enum OpenVerbs
